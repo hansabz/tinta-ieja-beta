@@ -1,3 +1,7 @@
+"""App "chatbot": guarda el historial de conversaciones con el asistente de IA.
+La lógica de la IA en sí (prompt, herramientas, proveedores) vive en services/ai/ —
+acá solo están los modelos de datos y (en views.py) el endpoint que las conecta."""
+
 from django.conf import settings
 from django.db import models
 

@@ -1,3 +1,11 @@
+"""App "artists": el perfil de trabajo de cada empleado/artista del estudio.
+
+Empleado es una extensión de Usuario (apps.users.models.Usuario) — todo empleado
+o artista primero existe como Usuario con rol=EMPLEADO (eso da el login), y ACÁ
+se guarda la info específica de su trabajo (bio, especialidades, WhatsApp, foto).
+Se crea desde el panel admin: primero el Usuario, después el Empleado apuntando
+a ese usuario (ver /admin/artists/empleado/ y /admin/users/usuario/)."""
+
 from django.conf import settings
 from django.db import models
 

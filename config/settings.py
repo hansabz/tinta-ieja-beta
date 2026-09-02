@@ -1,5 +1,12 @@
 """
-Django settings for config project.
+Configuración central del proyecto Django "Tinta Vieja".
+
+Todo lo que puede cambiar entre tu computadora, la beta y un futuro despliegue
+real (claves, base de datos, etc.) se lee desde el archivo .env (ver .env.example
+para la lista completa) — así el código nunca tiene secretos escritos adentro.
+Si .env no existe o una variable está vacía, cada sección de acá abajo tiene un
+valor por defecto pensado para que el proyecto funcione igual en tu máquina
+(SQLite local, sin IA configurada, etc.) — ver env_str()/env_list() más abajo.
 """
 
 from pathlib import Path
@@ -39,6 +46,9 @@ CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", default=[])
 
 
 # Application definition
+# Las apps propias del proyecto viven en la carpeta apps/ (una por función:
+# usuarios, artistas, galería, chatbot, etc.) — cada una es un módulo Django
+# normal con sus propios models.py / views.py / admin.py / urls.py.
 
 INSTALLED_APPS = [
     "django.contrib.admin",

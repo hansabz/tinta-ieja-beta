@@ -308,10 +308,15 @@
 </head>
 <body>
 
+<!-- Estructura de la página: dos "mangas tatuadas" (bordes decorativos, ver el
+     JS más abajo que las dibuja) enmarcando el panel central con todo el
+     contenido real (nav, {% block content %} de cada página, footer). -->
 <div class="page-shell">
 <div class="ink-border left" id="inkBorderLeft" aria-hidden="true"></div>
 <div class="page-content">
 
+<!-- Barra de navegación: siempre visible, no pide login para nada (ver la
+     lógica de roles en apps/users) -->
 <nav class="nav" id="siteNav">
   <span class="tag-mark">{{ estudio.nombre }}</span>
   <button class="burger" id="navBurger" aria-label="Abrir menú" aria-expanded="false">
@@ -343,8 +348,10 @@
   </ul>
 {% endif %}
 
+<!-- Acá se inserta el contenido de cada página (ej: templates/studio/inicio.html) -->
 {% block content %}{% endblock %}
 
+<!-- Footer, con la animación de "borrado" al hacer click en los links (ver el JS) -->
 <footer class="footer">
   <div class="footer-inner">
     <div class="footer-col">
@@ -379,6 +386,9 @@
 <div class="ink-border right" id="inkBorderRight" aria-hidden="true"></div>
 </div>
 
+<!-- Botón flotante + panel del chat en vivo: visible en TODAS las páginas (está
+     acá en base.html, no en cada template). El JS de más abajo lo conecta con
+     apps/chatbot/views.py::enviar_mensaje vía fetch(). -->
 <button class="chatfab" id="chatFab" type="button" aria-label="Abrir el chat" aria-expanded="false">
   <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="7" width="16" height="13" rx="3" stroke="var(--paper)" stroke-width="2"/><line x1="12" y1="7" x2="12" y2="3" stroke="var(--paper)" stroke-width="2"/><circle cx="12" cy="2.4" r="1.5" fill="var(--paper)"/><circle cx="9" cy="13" r="1.6" fill="var(--paper)"/><circle cx="15" cy="13" r="1.6" fill="var(--paper)"/><rect x="9" y="16.4" width="6" height="1.8" rx="0.9" fill="var(--paper)"/></svg>
 </button>
@@ -408,6 +418,13 @@
   </form>
 </div>
 
+<!-- JavaScript de la página, en este orden:
+     1. Menú hamburguesa (móvil)
+     2. Animación de aparición al hacer scroll (.reveal / .reveal-group)
+     3. Dibujo de las "mangas tatuadas" de los bordes (scatter de íconos SVG)
+     4. Animación de "borrado" del footer al hacer click en sus links
+     5. Chat en vivo: abrir/cerrar el panel y enviar mensajes al backend
+-->
 <script>
 (function(){
   var burger = document.getElementById('navBurger');

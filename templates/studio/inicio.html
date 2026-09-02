@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="hero-wrap" id="inicio">
+  <div class="hero">
+    <div class="hero-copy">
+      <span class="eyebrow">{% if estudio.direccion %}{{ estudio.direccion }}{% else %}Estudio de tatuajes{% endif %}</span>
+      <h1>Tinta que se queda <em>para siempre</em></h1>
+      <p>{% if estudio.descripcion %}{{ estudio.descripcion }}{% else %}Contanos tu idea, armamos juntos las referencias visuales y un tatuador de carne y hueso la dibuja para vos. Sin promesas vacías de "diseño instantáneo por IA".{% endif %}</p>
+      <div class="hero-ctas">
+        <button class="btn btn-primary" type="button">Reservá tu consulta</button>
+        <a href="#galeria" class="btn btn-outline">Ver el portafolio</a>
+      </div>
+      <div class="hero-proof">
+        <div class="proof-item"><b>{{ artistas.count }}</b><span>Artistas residentes</span></div>
+        <div class="proof-item"><b>{{ estilos.count }}</b><span>Estilos que dominamos</span></div>
+      </div>
+    </div>
+    <div class="hero-photo">
+      <div class="flash-card">
+        <div class="placeholder">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="13" r="3.4" stroke="currentColor" stroke-width="1.6"/></svg>
+          <span>Foto del estudio o de un artista tatuando (a reemplazar por contenido real)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="section" id="estilos">
+  <div class="section-head reveal">
+    <span class="eyebrow tag-gold">Nuestra especialidad</span>
+    <h2>Estilos que trabajamos</h2>
+    <p>Cada artista tiene su propio enfoque — esto es lo que vas a encontrar en el estudio.</p>
+  </div>
+  <div class="styles-grid reveal-group">
+    {% for estilo in estilos %}
+    <div class="style-card">
+      {% if estilo.nombre == "Blackwork" %}
+        <svg class="icn" viewBox="0 0 24 24" fill="none"><path d="M4 20L20 4M4 20h6M4 20v-6" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      {% elif estilo.nombre == "Japonés / Irezumi" %}
+        <svg class="icn" viewBox="0 0 24 24" fill="none"><path d="M4 12c4-6 12-6 16 0-4 6-12 6-16 0z" stroke="var(--ink)" stroke-width="1.8"/><circle cx="12" cy="12" r="2.2" stroke="var(--ink)" stroke-width="1.8"/></svg>
+      {% elif estilo.nombre == "Old School" %}
+        <svg class="icn" viewBox="0 0 24 24" fill="none"><path d="M6 18l4-12 2 6 2-4 4 10" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      {% elif estilo.nombre == "Realismo" %}
+        <svg class="icn" viewBox="0 0 24 24" fill="none"><rect x="5" y="5" width="14" height="14" rx="1" stroke="var(--ink)" stroke-width="1.8"/><path d="M9 9l6 6M15 9l-6 6" stroke="var(--ink)" stroke-width="1.8"/></svg>
+      {% elif estilo.nombre == "Fineline" %}
+        <svg class="icn" viewBox="0 0 24 24" fill="none"><path d="M12 4l2.5 5.5L20 12l-5.5 2.5L12 20l-2.5-5.5L4 12l5.5-2.5z" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      {% elif estilo.nombre == "Geométrico" %}
+        <svg class="icn" viewBox="0 0 24 24" fill="none"><path d="M12 3l8 5v8l-8 5-8-5V8z" stroke="var(--ink)" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      {% else %}
+        <svg class="icn" viewBox="0 0 24 24" fill="none"><path d="M12 3l2.6 6.5L21 12l-6.4 2.5L12 21l-2.6-6.5L3 12l6.4-2.5z" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      {% endif %}
+      <h3>{{ estilo.nombre }}</h3>
+      <p>{{ estilo.descripcion }}</p>
+    </div>
+    {% empty %}
+    <p class="empty-note">Todavía no hay estilos cargados en el panel administrativo.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section gallery-wrap" id="galeria">
+  <div class="section-head reveal">
+    <span class="eyebrow tag-gold">Portafolio</span>
+    <h2>Trabajos recientes</h2>
+    <p>Una muestra de lo último que salió del estudio.</p>
+  </div>
+  <div class="gallery-grid reveal-group">
+    {% for obra in obras %}
+    <div class="g-card">
+      <div class="flash-card">
+        <img src="{{ obra.imagen.url }}" alt="{{ obra.titulo }}">
+      </div>
+      <div class="g-meta">
+        <h4>{{ obra.titulo }}</h4>
+        <span>por {{ obra.artista.usuario.get_full_name|default:obra.artista.usuario.username }}</span>
+        <span class="chip">{{ obra.estilo.nombre }}</span>
+      </div>
+    </div>
+    {% empty %}
+    <p class="empty-note">Todavía no hay trabajos cargados — se van a ir sumando a medida que el estudio suba fotos reales desde el panel administrativo.</p>
+    {% endfor %}
+  </div>
+  {% if obras %}
+  <div class="gallery-cta">
+    <button class="btn btn-outline-dark" type="button">Ver toda la galería</button>
+  </div>
+  {% endif %}
+</section>
+
+<section class="section artists-wrap" id="artistas">
+  <div class="section-head reveal">
+    <span class="eyebrow" style="color:var(--gold)">El equipo</span>
+    <h2 style="color:var(--paper)">Quiénes te tatúan</h2>
+    <p style="color:#c9bda5">Cada artista con su propia especialidad y su propio portafolio.</p>
+  </div>
+  <div class="artists-grid reveal-group">
+    {% for artista in artistas %}
+    <div class="artist-card">
+      {% if artista.foto_url %}
+        <div class="artist-photo"><img src="{{ artista.foto_url }}" alt="{{ artista.usuario.get_full_name }}"></div>
+      {% else %}
+        <div class="artist-photo placeholder"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.6"/><path d="M5 20c1.2-4 4-6 7-6s5.8 2 7 6" stroke="currentColor" stroke-width="1.6"/></svg></div>
+      {% endif %}
+      <h3>{{ artista.usuario.get_full_name|default:artista.usuario.username }}</h3>
+      <span class="role">{{ artista.especialidades|default:"Estilo a definir" }}</span>
+      {% if artista.biografia %}<p class="quote">"{{ artista.biografia|truncatewords:22 }}"</p>{% endif %}
+    </div>
+    {% empty %}
+    <p class="empty-note" style="color:#c9bda5">Todavía no hay artistas cargados en el panel administrativo.</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section" style="padding-top:0">
+  <div class="chat-banner reveal">
+    <div class="copy">
+      <span class="eyebrow" style="color:var(--gold)">Asistente del estudio</span>
+      <h2>¿Tenés preguntas antes de tatuarte?</h2>
+      <p>Nuestro asistente conoce los horarios, estilos y cuidados reales del estudio. Es solo el primer paso: en cualquier momento podés pedir hablar con una persona del equipo.</p>
+      <div style="margin-top:10px"><button class="btn btn-solid-ink" type="button" data-abrir-chat>Abrir el chat</button></div>
+    </div>
+    <div class="chat-preview">
+      <div class="chat-preview-head">
+        <div class="bot-badge"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="7" width="16" height="13" rx="3" stroke="var(--paper)" stroke-width="1.8"/><line x1="12" y1="7" x2="12" y2="3" stroke="var(--paper)" stroke-width="1.8"/><circle cx="12" cy="2.4" r="1.4" fill="var(--paper)"/><circle cx="9" cy="13" r="1.5" fill="var(--paper)"/><circle cx="15" cy="13" r="1.5" fill="var(--paper)"/><rect x="9" y="16.4" width="6" height="1.6" rx="0.8" fill="var(--paper)"/></svg></div>
+        <b>Asistente · {{ estudio.nombre }}</b>
+        <span class="status-dot"><span></span>en línea</span>
+      </div>
+      <div class="bot-bubble">
+        <div class="bot-badge"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="7" width="16" height="13" rx="3" stroke="var(--paper)" stroke-width="1.8"/><line x1="12" y1="7" x2="12" y2="3" stroke="var(--paper)" stroke-width="1.8"/><circle cx="12" cy="2.4" r="1.4" fill="var(--paper)"/><circle cx="9" cy="13" r="1.5" fill="var(--paper)"/><circle cx="15" cy="13" r="1.5" fill="var(--paper)"/><rect x="9" y="16.4" width="6" height="1.6" rx="0.8" fill="var(--paper)"/></svg></div>
+        <p>Hola, soy el asistente virtual de {{ estudio.nombre }}. Te cuento sobre estilos, horarios y turnos.</p>
+      </div>
+      <div class="bot-bubble">
+        <div class="bot-badge" style="visibility:hidden"></div>
+        <p>Cuando quieras podés escribirme "quiero hablar con un empleado" y te conecto con el equipo real.</p>
+      </div>
+      <div class="typing-row">
+        <div class="bot-badge" style="visibility:hidden"></div>
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div class="quick-replies">
+        <span class="qr-chip">Ver estilos</span>
+        <span class="qr-chip">Reservar turno</span>
+        <span class="qr-chip human">Hablar con un empleado</span>
+      </div>
+      <div class="chat-input-row">
+        <span class="fake-input">Escribí tu mensaje… (todavía no conectado)</span>
+        <div class="send-btn"><svg viewBox="0 0 24 24" fill="none"><path d="M4 20l16-8L4 4v6l10 2-10 2z" fill="var(--paper)"/></svg></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background:var(--cream)" id="contacto">
+  <div class="section-head reveal">
+    <span class="eyebrow tag-gold">Visitanos</span>
+    <h2>El estudio</h2>
+  </div>
+  <div class="contact-grid reveal">
+    <div>
+      <div class="info-row" style="margin-bottom:20px">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-6.2-7-11a7 7 0 1114 0c0 4.8-7 11-7 11z" stroke="var(--red-d)" stroke-width="1.7"/><circle cx="12" cy="10" r="2.4" stroke="var(--red-d)" stroke-width="1.7"/></svg>
+        <div><b>Dirección</b><span>{{ estudio.direccion|default:"Todavía sin cargar en el panel administrativo" }}</span></div>
+      </div>
+      <div class="info-row" style="margin-bottom:20px">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="var(--red-d)" stroke-width="1.7"/><path d="M12 7v5l3.5 2" stroke="var(--red-d)" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <div><b>Horarios</b><span>{{ estudio.horarios|default:"Todavía sin cargar en el panel administrativo" }}</span></div>
+      </div>
+      <div class="info-row">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 5h3l2 5-2 1a11 11 0 006 6l1-2 5 2v3a2 2 0 01-2 2C10 22 2 14 2 7a2 2 0 012-2z" stroke="var(--red-d)" stroke-width="1.7"/></svg>
+        <div><b>Teléfono / WhatsApp</b><span>{{ estudio.telefono|default:"Todavía sin cargar en el panel administrativo" }}</span></div>
+      </div>
+    </div>
+    <form class="mini-form" method="post" action="{% url 'contacts:crear_solicitud' %}">
+      {% csrf_token %}
+      <b style="font-size:14px">Escribinos directamente</b>
+      {% if user.is_authenticated %}
+        <p class="hint">Va a quedar guardada en tu cuenta ({{ user.username }}).</p>
+      {% else %}
+        <input type="text" name="nombre_contacto" placeholder="Tu nombre" required>
+        <input type="text" name="contacto" placeholder="Tu email o teléfono" required>
+      {% endif %}
+      <textarea name="motivo" placeholder="Contanos brevemente tu idea" required></textarea>
+      <button class="btn btn-primary btn-full" type="submit">Enviar</button>
+    </form>
+  </div>
+</section>
+
+{% endblock %}

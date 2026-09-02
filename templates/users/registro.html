@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Crear cuenta</h1>
+  <p>El registro público siempre crea una cuenta de <strong>cliente</strong>.</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Registrarme</button>
+  </form>
+{% endblock %}

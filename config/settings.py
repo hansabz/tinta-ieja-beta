@@ -44,6 +44,14 @@ ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "te
 
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", default=[])
 
+# Render define esta variable automáticamente en cada despliegue con el dominio
+# público real (ej. tinta-vieja.onrender.com) — así no hace falta escribirlo a
+# mano en ALLOWED_HOSTS/CSRF_TRUSTED_ORIGINS ni actualizarlo si el nombre cambia.
+RENDER_EXTERNAL_HOSTNAME = env_str("RENDER_EXTERNAL_HOSTNAME")
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
+
 
 # Application definition
 # Las apps propias del proyecto viven en la carpeta apps/ (una por función:
@@ -146,16 +154,22 @@ STORAGES = {
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Storage de imágenes en la nube (Cloudflare R2, API compatible con S3) — se activa
-# automáticamente cuando las variables de entorno están presentes; si no, se usa el
-# disco local (MEDIA_ROOT) para desarrollo.
-AWS_ACCESS_KEY_ID = env_str("R2_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = env_str("R2_SECRET_ACCESS_KEY")
-AWS_STORAGE_BUCKET_NAME = env_str("R2_BUCKET_NAME")
-AWS_S3_ENDPOINT_URL = env_str("R2_ENDPOINT_URL")
-AWS_S3_CUSTOM_DOMAIN = env_str("R2_PUBLIC_DOMAIN")
+# Storage de imágenes en la nube — cualquier proveedor compatible con S3 sirve
+# (Cloudflare R2, Backblaze B2, etc.), por eso las variables son genéricas
+# (STORAGE_*, no atadas a un proveedor). Se activa automáticamente cuando están
+# presentes; si no, se usa el disco local (MEDIA_ROOT) para desarrollo.
+AWS_ACCESS_KEY_ID = env_str("STORAGE_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = env_str("STORAGE_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = env_str("STORAGE_BUCKET_NAME")
+AWS_S3_ENDPOINT_URL = env_str("STORAGE_ENDPOINT_URL")
+AWS_S3_REGION_NAME = env_str("STORAGE_REGION_NAME")
+AWS_S3_CUSTOM_DOMAIN = env_str("STORAGE_PUBLIC_DOMAIN")  # solo si el bucket es público
 AWS_DEFAULT_ACL = None
-AWS_QUERYSTRING_AUTH = False
+# El bucket de la beta es privado (evita depender de que el proveedor cobre por
+# habilitar acceso público) — por eso las URLs se firman con una fecha de
+# vencimiento en vez de ser links públicos fijos. Si en el futuro el bucket pasa
+# a ser público, esto se puede poner en False.
+AWS_QUERYSTRING_AUTH = True
 
 if AWS_ACCESS_KEY_ID and AWS_STORAGE_BUCKET_NAME:
     STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}

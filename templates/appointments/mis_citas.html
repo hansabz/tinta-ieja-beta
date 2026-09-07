@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section">
+  <div class="section-head reveal">
+    <span class="eyebrow tag-gold">Turnos</span>
+    <h2>Mis citas</h2>
+    <p><a class="btn btn-outline-dark" href="{% url 'appointments:reservar' %}">Reservar otro turno</a></p>
+  </div>
+
+  {% for cita in citas %}
+    <div class="mini-form" style="max-width:640px;margin-bottom:16px">
+      <p><b>Estado:</b> {{ cita.get_estado_display }}</p>
+      <p><b>Tatuador:</b> {{ cita.tatuador|default:"A definir por el estudio" }}</p>
+      <p><b>Sesiones:</b> {{ cita.numero_sesiones }} {% if cita.costo %}· <b>Costo:</b> {{ cita.costo }}{% endif %}</p>
+      <ul>
+        {% for sesion in cita.sesiones.all %}
+          <li>Sesión {{ sesion.numero }}: {{ sesion.inicio|date:"d/m/Y H:i" }} — {{ sesion.get_estado_display }}</li>
+        {% endfor %}
+      </ul>
+      {% if cita.estado == "TERMINADA" and cita.foto_resultado %}
+        <button type="button" class="btn btn-primary ver-resultado-btn" data-target="resultado-{{ cita.pk }}">Ver resultado</button>
+        <div id="resultado-{{ cita.pk }}" hidden style="margin-top:10px">
+          <img src="{{ cita.foto_resultado.url }}" alt="Resultado del tatuaje" style="max-width:100%;border-radius:8px">
+        </div>
+      {% endif %}
+    </div>
+  {% empty %}
+    <p class="empty-note">Todavía no reservaste ningún turno.</p>
+  {% endfor %}
+</section>
+
+<script>
+document.querySelectorAll('.ver-resultado-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var el = document.getElementById(btn.dataset.target);
+    if (el) { el.hidden = !el.hidden; }
+  });
+});
+</script>
+{% endblock %}

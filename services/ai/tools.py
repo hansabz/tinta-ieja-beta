@@ -13,14 +13,10 @@ arbitrario, solo redactar el motivo.
 """
 
 import logging
-import re
+
+from services.whatsapp import link_whatsapp as _link_whatsapp
 
 logger = logging.getLogger("chatbot.tools")
-
-
-def _link_whatsapp(numero):
-    digitos = re.sub(r"[^0-9]", "", numero or "")
-    return f"https://wa.me/{digitos}" if digitos else ""
 
 
 def consultar_informacion_estudio(args, contexto):

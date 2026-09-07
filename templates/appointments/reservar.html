@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section" id="reservar">
+  <div class="section-head reveal">
+    <span class="eyebrow tag-gold">Turnos</span>
+    <h2>Reservá tu tatuaje</h2>
+    <p>Elegí cuántas sesiones necesita tu idea, con quién querés hacerlo (si tenés preferencia) y los
+      horarios — nunca vas a poder elegir uno que ya esté ocupado.</p>
+  </div>
+
+  <form method="post" id="reservaForm" novalidate>
+    {% csrf_token %}
+    <div class="mini-form" style="max-width:560px">
+      {{ form.tatuador.label_tag }} {{ form.tatuador }}
+      {{ form.estilo.label_tag }} {{ form.estilo }}
+      {{ form.numero_sesiones.label_tag }} {{ form.numero_sesiones }}
+      {{ form.notas.label_tag }} {{ form.notas }}
+    </div>
+
+    <div id="sesionesWrap"></div>
+
+    <button class="btn btn-primary" type="submit">Confirmar reserva</button>
+  </form>
+</section>
+
+<style>
+  .sesion-block{border:1px solid var(--cream-2, #ddd);border-radius:8px;padding:16px;margin-top:16px;max-width:560px}
+  .sesion-block h4{margin:0 0 8px}
+  .horarios-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .horario-chip{cursor:pointer;border:1px solid var(--ink,#222);background:none}
+  .horario-chip.elegido{background:var(--gold,#c9a227);color:#111;font-weight:700}
+</style>
+
+<script>
+(function () {
+  var maxSesiones = {{ form.config.max_sesiones_por_cita|default:6 }};
+  var wrap = document.getElementById('sesionesWrap');
+  var selectNumero = document.querySelector('#reservaForm select[name="numero_sesiones"]');
+  var selectTatuador = document.querySelector('#reservaForm select[name="tatuador"]');
+  var hoy = "{{ hoy }}";
+
+  function bloqueSesion(n) {
+    var div = document.createElement('div');
+    div.className = 'sesion-block';
+    div.dataset.sesion = n;
+    div.innerHTML =
+      '<h4>Sesión ' + n + '</h4>' +
+      '<input type="date" min="' + hoy + '" class="fecha-sesion">' +
+      ' <button type="button" class="btn btn-outline ver-horarios">Ver horarios disponibles</button>' +
+      '<div class="horarios-resultado"></div>' +
+      '<input type="hidden" name="sesion_' + n + '_inicio">';
+    return div;
+  }
+
+  for (var i = 1; i <= maxSesiones; i++) {
+    wrap.appendChild(bloqueSesion(i));
+  }
+
+  function actualizarVisibilidad() {
+    var n = parseInt(selectNumero.value || '1', 10);
+    wrap.querySelectorAll('.sesion-block').forEach(function (bloque) {
+      var idx = parseInt(bloque.dataset.sesion, 10);
+      bloque.style.display = idx <= n ? '' : 'none';
+    });
+  }
+  selectNumero.addEventListener('change', actualizarVisibilidad);
+  actualizarVisibilidad();
+
+  wrap.addEventListener('click', function (ev) {
+    if (ev.target.classList.contains('ver-horarios')) {
+      var bloque = ev.target.closest('.sesion-block');
+      var fecha = bloque.querySelector('.fecha-sesion').value;
+      if (!fecha) { return; }
+      var params = new URLSearchParams({
+        fecha: fecha,
+        sesion: bloque.dataset.sesion,
+        tatuador: selectTatuador.value || ''
+      });
+      fetch("{% url 'appointments:horarios_partial' %}?" + params.toString())
+        .then(function (r) { return r.text(); })
+        .then(function (html) {
+          bloque.querySelector('.horarios-resultado').innerHTML = html;
+        });
+    }
+    if (ev.target.classList.contains('horario-chip')) {
+      var bloque2 = ev.target.closest('.sesion-block');
+      bloque2.querySelectorAll('.horario-chip').forEach(function (c) { c.classList.remove('elegido'); });
+      ev.target.classList.add('elegido');
+      bloque2.querySelector('input[type=hidden]').value = ev.target.dataset.inicio;
+    }
+  });
+})();
+</script>
+{% endblock %}

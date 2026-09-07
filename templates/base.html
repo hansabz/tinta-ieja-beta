@@ -310,7 +310,7 @@
 
 <!-- Estructura de la página: dos "mangas tatuadas" (bordes decorativos, ver el
      JS más abajo que las dibuja) enmarcando el panel central con todo el
-     contenido real (nav, {% block content %} de cada página, footer). -->
+     contenido real (nav, el bloque "content" de cada página, footer). -->
 <div class="page-shell">
 <div class="ink-border left" id="inkBorderLeft" aria-hidden="true"></div>
 <div class="page-content">
@@ -330,6 +330,8 @@
     <a href="{% url 'studio:inicio' %}#contacto">Contacto</a>
     <div class="divider"></div>
     {% if user.is_authenticated %}
+      <a href="{% url 'appointments:reservar' %}">Reservar turno</a>
+      <a href="{% url 'appointments:mis_citas' %}">Mis citas</a>
       {% if user.is_staff %}<a href="/admin/">Panel administrativo</a>{% endif %}
       <form method="post" action="{% url 'users:logout' %}">
         {% csrf_token %}

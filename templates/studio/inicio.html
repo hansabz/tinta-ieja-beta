@@ -8,7 +8,11 @@
       <h1>Tinta que se queda <em>para siempre</em></h1>
       <p>{% if estudio.descripcion %}{{ estudio.descripcion }}{% else %}Contanos tu idea, armamos juntos las referencias visuales y un tatuador de carne y hueso la dibuja para vos. Sin promesas vacías de "diseño instantáneo por IA".{% endif %}</p>
       <div class="hero-ctas">
-        <button class="btn btn-primary" type="button">Reservá tu consulta</button>
+        {% if user.is_authenticated %}
+          <a href="{% url 'appointments:reservar' %}" class="btn btn-primary">Reservá tu consulta</a>
+        {% else %}
+          <a href="{% url 'users:login' %}?next={% url 'appointments:reservar' %}" class="btn btn-primary">Reservá tu consulta</a>
+        {% endif %}
         <a href="#galeria" class="btn btn-outline">Ver el portafolio</a>
       </div>
       <div class="hero-proof">

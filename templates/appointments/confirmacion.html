@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section">
+  <div class="section-head reveal">
+    <span class="eyebrow tag-gold">¡Listo!</span>
+    <h2>Tu reserva quedó registrada</h2>
+  </div>
+
+  <div class="mini-form" style="max-width:560px">
+    <p><b>Tatuador:</b> {{ cita.tatuador|default:"A definir por el estudio" }}</p>
+    <p><b>Estilo:</b> {{ cita.estilo|default:"A definir" }}</p>
+    <p><b>Sesiones:</b> {{ cita.numero_sesiones }}</p>
+    <ul>
+      {% for sesion in cita.sesiones.all %}
+        <li>Sesión {{ sesion.numero }}: {{ sesion.inicio|date:"d/m/Y H:i" }}</li>
+      {% endfor %}
+    </ul>
+
+    {% if whatsapp_link %}
+      <p>Para confirmar el turno, avisá {% if cita.tatuador %}a {{ cita.tatuador }}{% else %}al estudio{% endif %}
+        por WhatsApp:</p>
+      <a class="btn btn-primary btn-full" href="{{ whatsapp_link }}" target="_blank" rel="noopener">Avisar por WhatsApp</a>
+    {% else %}
+      <p class="empty-note">El estudio todavía no cargó un número de WhatsApp en /admin — contactalo por otro medio para confirmar.</p>
+    {% endif %}
+
+    <p style="margin-top:16px"><a href="{% url 'appointments:mis_citas' %}">Ver mis citas</a></p>
+  </div>
+</section>
+{% endblock %}

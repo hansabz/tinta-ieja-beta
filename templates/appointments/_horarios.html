@@ -1,0 +1,11 @@
+{% if horarios %}
+  <div class="horarios-grid">
+    {% for h in horarios %}
+      <button type="button" class="chip horario-chip" data-sesion="{{ sesion_n }}" data-inicio="{{ h.isoformat }}">
+        {{ h|date:"H:i" }}
+      </button>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="empty-note">No hay horarios disponibles ese día. Probá con otra fecha.</p>
+{% endif %}

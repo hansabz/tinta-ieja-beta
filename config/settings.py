@@ -65,7 +65,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",  # lo pide django-allauth (login con Google)
     "rest_framework",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
     "apps.users",
     "apps.artists",
     "apps.gallery",
@@ -75,6 +80,7 @@ INSTALLED_APPS = [
     "apps.research",
     "apps.contacts",
     "apps.studio",
+    "apps.appointments",
 ]
 
 MIDDLEWARE = [
@@ -86,6 +92,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -109,6 +116,22 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 AUTH_USER_MODEL = "users.Usuario"
+
+# django-allauth (login con Google) — el Client ID/Secret de Google NO se
+# configura acá: se carga desde /admin → Social Applications, una vez que el
+# gerente los saque de Google Cloud Console (ver docs/). Así queda editable
+# sin tocar código, igual que el resto de la configuración del estudio.
+SITE_ID = 1
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+SOCIALACCOUNT_ADAPTER = "apps.users.adapters.CustomSocialAccountAdapter"
+# Google ya verifica el email de la cuenta — no hace falta pedirle al usuario
+# que confirme un segundo email para poder entrar.
+ACCOUNT_EMAIL_VERIFICATION = "none"
+# Salta la pantalla intermedia de allauth y va directo a la pantalla de Google.
+SOCIALACCOUNT_LOGIN_ON_GET = True
 
 
 # Database
@@ -146,6 +169,13 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 STORAGES = {
+    # Por defecto, disco local (MEDIA_ROOT) — se reemplaza más abajo por S3
+    # solo si hay credenciales de un proveedor cloud configuradas. Sin este
+    # "default" explícito, Django no sabe dónde guardar imágenes en desarrollo
+    # (ImageField no tiene a dónde escribir y todo save() de una imagen falla).
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },

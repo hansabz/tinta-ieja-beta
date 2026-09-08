@@ -21,6 +21,14 @@ class ConflictoDeHorario(Exception):
 
 
 def _rango_mes(fecha):
+    # OJO con esto: `fecha` llega en UTC (así se guarda todo con USE_TZ=True) y
+    # el estudio piensa en el mes calendario de SU horario local (Argentina).
+    # Sin convertir primero, una cita a las 21hs locales de fin de mes puede
+    # calcular mal el mes (en UTC ya es el día siguiente) y dejar pasar más
+    # sesiones de las permitidas, o al revés. Mismo motivo en el chequeo de
+    # "mismo día" más abajo (inicio.date() de una fecha aware siempre da la
+    # fecha en UTC, no la fecha real que ve el estudio).
+    fecha = timezone.localtime(fecha)
     inicio_mes = fecha.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     if inicio_mes.month == 12:
         fin_mes = inicio_mes.replace(year=inicio_mes.year + 1, month=1)
@@ -59,7 +67,7 @@ def validar_nueva_sesion(tatuador, inicio, duracion_minutos, excluir_sesion_id=N
         )
 
     # 2) Choque de horario ese mismo día + regla de "día ya muy largo".
-    del_dia = activas.filter(inicio__date=inicio.date())
+    del_dia = activas.filter(inicio__date=timezone.localtime(inicio).date())
     for sesion in del_dia:
         se_pisan = inicio < sesion.fin and sesion.inicio < fin_propuesto
         if se_pisan:

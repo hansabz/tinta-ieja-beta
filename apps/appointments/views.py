@@ -61,7 +61,9 @@ def reservar(request):
                     for inicio in horarios:
                         validar_nueva_sesion(tatuador, inicio, duracion)
                         for otro_inicio in provisorias:
-                            if inicio.date() == otro_inicio.date():
+                            # Comparar en hora local, no en UTC (ver el comentario
+                            # en services._rango_mes sobre por qué importa).
+                            if timezone.localtime(inicio).date() == timezone.localtime(otro_inicio).date():
                                 raise ConflictoDeHorario(
                                     "Dos sesiones de esta misma reserva no pueden coincidir el mismo día."
                                 )

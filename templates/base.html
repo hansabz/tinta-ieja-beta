@@ -332,7 +332,6 @@
     {% if user.is_authenticated %}
       <a href="{% url 'appointments:reservar' %}">Reservar turno</a>
       <a href="{% url 'appointments:mis_citas' %}">Mis citas</a>
-      {% if user.is_staff %}<a href="/admin/">Panel administrativo</a>{% endif %}
       <form method="post" action="{% url 'users:logout' %}">
         {% csrf_token %}
         <button type="submit">Cerrar sesión ({{ user.username }})</button>

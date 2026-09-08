@@ -1,0 +1,38 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<h1>Importar citas desde Excel</h1>
+
+<p>
+  Subí un archivo <code>.xlsx</code> con una hoja llamada <b>"Citas"</b> (el mismo formato que
+  te descarga "Exportar seleccionadas a Excel"). Cada fila crea una cita nueva si la columna
+  <code>id</code> está vacía, o actualiza la cita existente si pone un id que ya existe.
+</p>
+<p>
+  <b>Importante:</b> esto no crea ni reprograma horarios de sesión — eso sigue yendo por el
+  calendario de reserva o el detalle de cada cita en este panel, que son los únicos lugares que
+  chequean que no se pise con otro turno del mismo tatuador.
+</p>
+<p>Columnas esperadas en la hoja "Citas":
+  <code>id, cliente_username, tatuador_username, estilo, numero_sesiones, costo, estado, notas, fecha_finalizada</code>
+</p>
+
+{% if resumen %}
+  <div class="module" style="padding:12px 16px;margin-bottom:16px">
+    <p><b>Creadas:</b> {{ resumen.creadas }} · <b>Actualizadas:</b> {{ resumen.actualizadas }}</p>
+    {% if resumen.errores %}
+      <p><b>Filas con problemas (no se importaron):</b></p>
+      <ul>
+        {% for error in resumen.errores %}<li>{{ error }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <input type="file" name="archivo" accept=".xlsx" required>
+  <p><input type="submit" class="default" value="Importar"></p>
+</form>
+
+<p><a href="{% url 'admin:appointments_cita_changelist' %}">&larr; Volver al listado de citas</a></p>
+{% endblock %}

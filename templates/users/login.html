@@ -1,16 +1,72 @@
 {% extends "base.html" %}
 {% load socialaccount %}
 {% block content %}
-  <h1>Iniciar sesión</h1>
-  <form method="post" novalidate>
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Entrar</button>
-  </form>
+<section class="section" style="background:var(--cream)" id="login">
+  <div class="section-head reveal">
+    <span class="eyebrow tag-gold">Cuenta</span>
+    <h2>Iniciar sesión</h2>
+    <p>Entrá para reservar turnos, ver el estado de tus citas y hablar con el estudio.</p>
+  </div>
 
-  {% get_providers as socialaccount_providers %}
-  {% if socialaccount_providers %}
-    <p style="margin:16px 0 8px">o</p>
-    <a class="btn btn-outline" href="{% provider_login_url 'google' %}">Iniciar sesión con Google</a>
-  {% endif %}
+  <div class="auth-grid">
+    <form method="post" novalidate class="mini-form auth-form reveal">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <ul class="msgs">
+          {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+      {% for field in form %}
+        <div class="form-field">
+          {{ field.label_tag }}
+          {{ field }}
+          {% if field.help_text %}<span class="hint">{{ field.help_text }}</span>{% endif %}
+          {% for error in field.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+        </div>
+      {% endfor %}
+      <button class="btn btn-primary btn-full" type="submit">Entrar</button>
+
+      {% get_providers as socialaccount_providers %}
+      {% if socialaccount_providers %}
+        <div class="auth-divider"><span>o</span></div>
+        <a class="btn btn-outline btn-full google-btn" href="{% provider_login_url 'google' %}">
+          <svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">
+            <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.95v2.33A9 9 0 0 0 9 18z"/>
+            <path fill="#FBBC05" d="M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.95A9 9 0 0 0 0 9c0 1.45.35 2.83.95 4.05l3.02-2.33z"/>
+            <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .95 4.95l3.02 2.33C4.68 5.16 6.66 3.58 9 3.58z"/>
+          </svg>
+          Continuar con Google
+        </a>
+      {% endif %}
+    </form>
+
+    <div class="flash-card auth-side reveal">
+      <div class="placeholder">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-6.2-7-11a7 7 0 1114 0c0 4.8-7 11-7 11z" stroke="currentColor" stroke-width="1.6"/><path d="M9 12l2 2 4-4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Tu cuenta guarda tus turnos y el estado de cada sesión — no hace falta escribirle al estudio para saber cómo va tu tatuaje.</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="reveal auth-footer-link">¿Todavía no tenés cuenta? <a href="{% url 'users:registro' %}">Registrate acá</a>.</p>
+</section>
+
+<style>
+  .auth-grid{display:grid;grid-template-columns:1fr;gap:24px;align-items:start;max-width:760px}
+  .auth-form{max-width:420px}
+  .auth-form .form-field{display:flex;flex-direction:column;gap:4px}
+  .auth-form label{font-weight:600;font-size:13px;color:var(--ink)}
+  .field-error{color:var(--red-d);font-size:12px}
+  .auth-divider{display:flex;align-items:center;gap:12px;color:var(--ink-soft);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;margin:2px 0}
+  .auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--cream-2)}
+  .google-btn{display:flex;align-items:center;justify-content:center;gap:10px}
+  .auth-side{max-width:340px;justify-self:center}
+  .auth-side .placeholder{aspect-ratio:4/3;width:100%}
+  .auth-footer-link{font-size:14px}
+  @media (min-width:760px){
+    .auth-grid{grid-template-columns:420px 1fr}
+    .auth-side{justify-self:start}
+  }
+</style>
 {% endblock %}

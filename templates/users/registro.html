@@ -1,10 +1,54 @@
 {% extends "base.html" %}
 {% block content %}
-  <h1>Crear cuenta</h1>
-  <p>El registro público siempre crea una cuenta de <strong>cliente</strong>.</p>
-  <form method="post" novalidate>
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Registrarme</button>
-  </form>
+<section class="section" style="background:var(--cream)" id="registro">
+  <div class="section-head reveal">
+    <span class="eyebrow tag-gold">Cuenta</span>
+    <h2>Crear cuenta</h2>
+    <p>El registro público siempre crea una cuenta de <strong>cliente</strong> — es lo único que necesitás para reservar turnos y hablar con el estudio.</p>
+  </div>
+
+  <div class="auth-grid">
+    <form method="post" novalidate class="mini-form auth-form reveal">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <ul class="msgs">
+          {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+      {% for field in form %}
+        <div class="form-field">
+          {{ field.label_tag }}
+          {{ field }}
+          {% if field.help_text %}<span class="hint">{{ field.help_text }}</span>{% endif %}
+          {% for error in field.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+        </div>
+      {% endfor %}
+      <button class="btn btn-primary btn-full" type="submit">Registrarme</button>
+    </form>
+
+    <div class="flash-card auth-side reveal">
+      <div class="placeholder">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="13" r="3.4" stroke="currentColor" stroke-width="1.6"/></svg>
+        <span>Con tu cuenta vas a poder reservar turnos, elegir cuántas sesiones necesita tu idea y ver la foto del resultado cuando el tatuador la suba.</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="reveal auth-footer-link">¿Ya tenés cuenta? <a href="{% url 'users:login' %}">Iniciá sesión acá</a>.</p>
+</section>
+
+<style>
+  .auth-grid{display:grid;grid-template-columns:1fr;gap:24px;align-items:start;max-width:760px}
+  .auth-form{max-width:420px}
+  .auth-form .form-field{display:flex;flex-direction:column;gap:4px}
+  .auth-form label{font-weight:600;font-size:13px;color:var(--ink)}
+  .field-error{color:var(--red-d);font-size:12px}
+  .auth-side{max-width:340px;justify-self:center}
+  .auth-side .placeholder{aspect-ratio:4/3;width:100%}
+  .auth-footer-link{font-size:14px}
+  @media (min-width:760px){
+    .auth-grid{grid-template-columns:420px 1fr}
+    .auth-side{justify-self:start}
+  }
+</style>
 {% endblock %}

@@ -10,7 +10,10 @@ Reglas de permisos (ver el requerimiento original):
 """
 
 from django.contrib import admin, messages
+from django.shortcuts import redirect, render
+from django.urls import path
 
+from .excel import exportar_citas_excel, importar_citas_excel
 from .models import Cita, SesionCita
 from .services import finalizar_cita, publicar_en_portafolio
 
@@ -40,7 +43,8 @@ class CitaAdmin(admin.ModelAdmin):
     autocomplete_fields = ("cliente", "tatuador", "estilo")
     readonly_fields = ("creada", "resultado_publicado_portafolio", "obra_publicada")
     inlines = [SesionCitaInline]
-    actions = ["accion_marcar_terminada", "accion_publicar_en_portafolio"]
+    actions = ["accion_marcar_terminada", "accion_publicar_en_portafolio", "accion_exportar_excel"]
+    change_list_template = "admin/appointments/cita/change_list.html"
 
     @admin.display(description="Fecha (próxima sesión)")
     def proxima_fecha(self, obj):
@@ -85,7 +89,48 @@ class CitaAdmin(admin.ModelAdmin):
         # la cita ni cambiar cliente/tatuador/costo.
         return base + ["cliente", "tatuador", "estilo", "numero_sesiones", "costo"]
 
-    # --- Acciones -------------------------------------------------------
+    # --- Excel: exportar todas / importar (solo administrador) --------------
+    def get_urls(self):
+        urls = [
+            path(
+                "importar-excel/",
+                self.admin_site.admin_view(self.importar_excel_view),
+                name="appointments_cita_importar_excel",
+            ),
+        ]
+        return urls + super().get_urls()
+
+    def importar_excel_view(self, request):
+        if not _es_admin(request.user):
+            self.message_user(request, "Solo el administrador puede importar citas.", messages.ERROR)
+            return redirect("admin:appointments_cita_changelist")
+
+        resumen = None
+        if request.method == "POST" and request.FILES.get("archivo"):
+            resumen = importar_citas_excel(request.FILES["archivo"])
+            if resumen["creadas"] or resumen["actualizadas"]:
+                self.message_user(
+                    request,
+                    f"Importación lista: {resumen['creadas']} cita(s) creadas, "
+                    f"{resumen['actualizadas']} actualizadas.",
+                    messages.SUCCESS,
+                )
+            for error in resumen["errores"]:
+                self.message_user(request, error, messages.WARNING)
+            if not resumen["errores"]:
+                return redirect("admin:appointments_cita_changelist")
+
+        return render(
+            request,
+            "admin/appointments/cita/importar.html",
+            {**self.admin_site.each_context(request), "resumen": resumen, "opts": self.model._meta},
+        )
+
+    @admin.action(description="Exportar seleccionadas a Excel")
+    def accion_exportar_excel(self, request, queryset):
+        return exportar_citas_excel(queryset)
+
+    # --- Otras acciones ---------------------------------------------------
     @admin.action(description="Marcar como terminada (libera sesiones futuras)")
     def accion_marcar_terminada(self, request, queryset):
         for cita in queryset:

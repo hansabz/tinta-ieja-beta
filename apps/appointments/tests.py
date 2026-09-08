@@ -1,6 +1,7 @@
 """Pruebas de las reglas de negocio del sistema de citas — ver services.py y
 admin.py, que es donde vive toda la lógica que estos tests verifican."""
 
+import io
 import tempfile
 from datetime import timedelta
 
@@ -16,6 +17,7 @@ from apps.studio.models import ConfiguracionEstudio
 from apps.users.models import Cliente, Rol, Usuario
 
 from .admin import CitaAdmin
+from .excel import exportar_citas_excel, importar_citas_excel
 from .models import Cita, EstadoSesion, SesionCita
 from .services import ConflictoDeHorario, limpiar_historial_vencido, publicar_en_portafolio, validar_nueva_sesion
 
@@ -177,3 +179,94 @@ class PermisosAdminCitasTests(TestCase):
         req = self._request_como(self.tatuador_empleado.usuario)
         self.assertTrue(self.admin_instance.has_change_permission(req, self.cita_propia))
         self.assertFalse(self.admin_instance.has_change_permission(req, self.cita_ajena))
+
+
+class ExcelExportImportTests(TestCase):
+    def setUp(self):
+        self.tatuador = _crear_tatuador("tatu.excel")
+        self.cliente = _crear_cliente("cliente.excel")
+        self.estilo = Estilo.objects.create(nombre="Realismo-test")
+
+    def test_exportar_incluye_hojas_citas_y_sesiones(self):
+        from openpyxl import load_workbook
+
+        cita = Cita.objects.create(cliente=self.cliente, tatuador=self.tatuador, costo=100)
+        SesionCita.objects.create(cita=cita, numero=1, inicio=timezone.now() + timedelta(days=1), duracion_minutos=60)
+
+        respuesta = exportar_citas_excel(Cita.objects.filter(pk=cita.pk))
+        self.assertEqual(
+            respuesta["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        libro = load_workbook(io.BytesIO(respuesta.content))
+        self.assertEqual(libro.sheetnames, ["Citas", "Sesiones"])
+        fila_cita = list(libro["Citas"].iter_rows(min_row=2, values_only=True))[0]
+        self.assertEqual(fila_cita[0], cita.pk)
+        self.assertEqual(fila_cita[1], "cliente.excel")
+        fila_sesion = list(libro["Sesiones"].iter_rows(min_row=2, values_only=True))[0]
+        self.assertEqual(fila_sesion[0], cita.pk)
+
+    def test_importar_crea_cita_nueva_sin_id(self):
+        archivo = _libro_citas([
+            ["", "cliente.excel", "tatu.excel", "Realismo-test", 2, 150, "PENDIENTE", "prueba"],
+        ])
+        resumen = importar_citas_excel(archivo)
+        self.assertEqual(resumen["creadas"], 1)
+        self.assertEqual(resumen["errores"], [])
+        cita = Cita.objects.get(cliente=self.cliente)
+        self.assertEqual(cita.numero_sesiones, 2)
+        self.assertEqual(cita.tatuador, self.tatuador)
+
+    def test_importar_actualiza_cita_existente_por_id(self):
+        cita = Cita.objects.create(cliente=self.cliente, costo=10)
+        archivo = _libro_citas([
+            [cita.pk, "cliente.excel", "", "", 1, 999, "TERMINADA", "actualizada"],
+        ])
+        resumen = importar_citas_excel(archivo)
+        self.assertEqual(resumen["actualizadas"], 1)
+        cita.refresh_from_db()
+        self.assertEqual(float(cita.costo), 999)
+        self.assertEqual(cita.estado, "TERMINADA")
+        self.assertIsNotNone(cita.fecha_finalizada)
+
+    def test_importar_reporta_error_sin_romper_el_resto(self):
+        archivo = _libro_citas([
+            ["", "usuario-que-no-existe", "", "", 1, None, "PENDIENTE", ""],
+            ["", "cliente.excel", "", "", 1, None, "PENDIENTE", ""],
+        ])
+        resumen = importar_citas_excel(archivo)
+        self.assertEqual(resumen["creadas"], 1)
+        self.assertEqual(len(resumen["errores"]), 1)
+        self.assertIn("usuario-que-no-existe", resumen["errores"][0])
+
+    def test_empleado_no_puede_importar(self):
+        respuesta = self.client_como(self.tatuador.usuario).get(
+            "/admin/appointments/cita/importar-excel/"
+        )
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertFalse(Cita.objects.filter(cliente=self.cliente).exists())
+
+    def client_como(self, usuario):
+        from django.test import Client
+
+        cliente_http = Client()
+        cliente_http.force_login(usuario)
+        return cliente_http
+
+
+def _libro_citas(filas):
+    """Arma un .xlsx en memoria con una hoja "Citas" para probar importar_citas_excel."""
+    import io as _io
+
+    from openpyxl import Workbook
+
+    libro = Workbook()
+    hoja = libro.active
+    hoja.title = "Citas"
+    hoja.append(["id", "cliente_username", "tatuador_username", "estilo", "numero_sesiones", "costo", "estado", "notas"])
+    for fila in filas:
+        hoja.append(fila)
+    buffer = _io.BytesIO()
+    libro.save(buffer)
+    buffer.seek(0)
+    return buffer

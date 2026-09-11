@@ -23,5 +23,10 @@ class RegistroView(CreateView):
         usuario.save()
         Cliente.objects.create(usuario=usuario)
         self.object = usuario
-        login(self.request, usuario)
+        # Desde que existe login con Google (django-allauth) hay más de un
+        # backend de autenticación configurado (ver AUTHENTICATION_BACKENDS
+        # en settings.py) — login() ya no puede adivinar cuál usar y hace
+        # falta indicarlo a mano. Sin esto, cualquier registro público
+        # explota acá con un 500 (justo lo que pasó en producción).
+        login(self.request, usuario, backend="django.contrib.auth.backends.ModelBackend")
         return HttpResponseRedirect(self.get_success_url())

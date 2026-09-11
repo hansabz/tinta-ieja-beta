@@ -9,6 +9,27 @@ from .adapters import CustomSocialAccountAdapter
 from .models import Cliente, Rol, Usuario
 
 
+class RegistroPublicoTests(TestCase):
+    """Con más de un AUTHENTICATION_BACKENDS configurado (desde que existe
+    login con Google) login() explota si no se le dice qué backend usar —
+    pasó de verdad en producción. Esto lo bloquea para siempre."""
+
+    def test_registro_no_rompe_al_loguear_automaticamente(self):
+        respuesta = self.client.post("/cuentas/registro/", {
+            "username": "cliente.nuevo.test",
+            "email": "cliente@ejemplo.com",
+            "password1": "ContraseñaSegura123!",
+            "password2": "ContraseñaSegura123!",
+        })
+        self.assertEqual(respuesta.status_code, 302)
+        usuario = Usuario.objects.get(username="cliente.nuevo.test")
+        self.assertEqual(usuario.rol, Rol.CLIENTE)
+        self.assertTrue(Cliente.objects.filter(usuario=usuario).exists())
+        # Si login() hubiera fallado, la sesión no quedaría autenticada.
+        respuesta_home = self.client.get("/")
+        self.assertContains(respuesta_home, "cliente.nuevo.test")
+
+
 class LoginConGoogleTests(TestCase):
     """El login con Google usa django-allauth, que no sabe nada de nuestros
     roles — CustomSocialAccountAdapter es lo que hace cumplir la misma regla

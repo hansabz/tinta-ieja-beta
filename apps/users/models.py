@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -36,6 +37,21 @@ class Cliente(models.Model):
         blank=True,
         related_name="clientes_asignados",
     )
+
+    def clean(self):
+        # Un usuario nunca puede ser cliente y empleado al mismo tiempo —
+        # antes nada lo impedía y eso generó cuentas inconsistentes desde
+        # /admin. Ver Empleado.clean() en apps.artists.models para la
+        # validación espejo.
+        if self.usuario_id and hasattr(self.usuario, "empleado"):
+            raise ValidationError(
+                "Este usuario ya tiene un perfil de empleado/tatuador — no puede ser cliente al mismo tiempo."
+            )
+        if self.usuario_id and self.usuario.rol != Rol.CLIENTE:
+            raise ValidationError(
+                f"Este usuario tiene rol '{self.usuario.get_rol_display()}', no Cliente. "
+                "Cambiá el rol en la ficha del usuario antes de crear su perfil de cliente."
+            )
 
     def __str__(self):
         return str(self.usuario)

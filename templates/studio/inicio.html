@@ -102,8 +102,8 @@
   <div class="artists-grid reveal-group">
     {% for artista in artistas %}
     <div class="artist-card">
-      {% if artista.foto_url %}
-        <div class="artist-photo"><img src="{{ artista.foto_url }}" alt="{{ artista.usuario.get_full_name }}"></div>
+      {% if artista.foto %}
+        <div class="artist-photo"><img src="{{ artista.foto.url }}" alt="{{ artista.usuario.get_full_name }}"></div>
       {% else %}
         <div class="artist-photo placeholder"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.6"/><path d="M5 20c1.2-4 4-6 7-6s5.8 2 7 6" stroke="currentColor" stroke-width="1.6"/></svg></div>
       {% endif %}

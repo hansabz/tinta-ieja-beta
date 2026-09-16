@@ -217,6 +217,24 @@ TAVILY_API_KEY = env_str("TAVILY_API_KEY")
 REPLICATE_API_TOKEN = env_str("REPLICATE_API_TOKEN")
 
 
+# Envío de emails — hace falta para "Olvidé mi contraseña" (ver apps.users).
+# Con EMAIL_HOST_USER vacío (default en desarrollo), Django imprime el email
+# en la consola en vez de mandarlo de verdad — no hace falta configurar nada
+# para probarlo localmente, pero en producción SÍ hay que cargar estas
+# variables (ver .env.example) o el link de restablecimiento nunca le llega
+# a nadie.
+EMAIL_HOST_USER = env_str("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env_str("EMAIL_HOST_PASSWORD")
+EMAIL_HOST = env_str("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+DEFAULT_FROM_EMAIL = env_str("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER or "no-responder@tintavieja.local")
+if EMAIL_HOST_USER:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+
 # Seguridad — activa cabeceras estrictas fuera de DEBUG (producción/Render).
 if not DEBUG:
     SECURE_SSL_REDIRECT = True

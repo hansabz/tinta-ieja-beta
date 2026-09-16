@@ -10,6 +10,9 @@ pantalla de alta — ver add_fieldsets e inlines más abajo.
 
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import redirect
+from django.urls import reverse
 
 from apps.artists.models import Empleado
 
@@ -60,6 +63,25 @@ class UsuarioAdmin(UserAdmin):
         }),
     )
     inlines = [EmpleadoInline, ClienteInline]
+
+    def user_change_password(self, request, id, form_url=""):
+        # Regla explícita del estudio: cambiarle la contraseña a OTRA persona
+        # desde acá solo lo puede hacer un superusuario real, y nunca a un
+        # cliente (un cliente que se olvidó la suya usa "¿Olvidaste tu
+        # contraseña?" en la pantalla de login — self-service, no esto).
+        usuario_objetivo = self.get_object(request, id)
+        if usuario_objetivo is not None and usuario_objetivo.rol == Rol.CLIENTE:
+            if not request.user.is_superuser:
+                raise PermissionDenied
+            messages.error(
+                request,
+                "No se puede cambiar la contraseña de un cliente desde acá — es su cuenta, "
+                "que la restablezca él mismo con \"¿Olvidaste tu contraseña?\" en el login.",
+            )
+            return redirect(reverse("admin:users_usuario_change", args=[id]))
+        if not request.user.is_superuser:
+            raise PermissionDenied
+        return super().user_change_password(request, id, form_url)
 
     def save_model(self, request, obj, form, change):
         # Un empleado o administrador necesita entrar a /admin (para gestionar

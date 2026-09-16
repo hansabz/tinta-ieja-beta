@@ -1,7 +1,9 @@
 from unittest.mock import patch
 
+from django.core import mail
 from django.core.exceptions import ValidationError
-from django.test import TestCase
+from django.test import Client, TestCase
+from django.urls import reverse
 
 from apps.artists.models import Empleado
 
@@ -119,3 +121,76 @@ class NoClienteYEmpleadoALaVezTests(TestCase):
         nuevo = Usuario.objects.get(username="doble.rol.test")
         self.assertFalse(Cliente.objects.filter(usuario=nuevo).exists())
         self.assertFalse(Empleado.objects.filter(usuario=nuevo).exists())
+
+
+class RestablecerContrasenaTests(TestCase):
+    """"Olvidé mi contraseña" — self-service, para cualquier usuario."""
+
+    def test_pedir_reset_manda_un_email_con_link_valido(self):
+        usuario = Usuario.objects.create(username="olvidadizo", email="olvidadizo@ejemplo.com", rol=Rol.CLIENTE)
+        usuario.set_password("laVieja123")
+        usuario.save()
+
+        respuesta = self.client.post(reverse("users:password_reset"), {"email": "olvidadizo@ejemplo.com"})
+        self.assertRedirects(respuesta, reverse("users:password_reset_done"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Tinta Vieja", mail.outbox[0].subject)
+        self.assertIn("restablecer", mail.outbox[0].body)
+
+    def test_email_inexistente_no_revela_si_la_cuenta_existe(self):
+        # Por seguridad, Django no debe decir "ese email no existe" —
+        # siempre redirige al mismo "revisá tu email", exista o no la cuenta.
+        respuesta = self.client.post(reverse("users:password_reset"), {"email": "no.existe@ejemplo.com"})
+        self.assertRedirects(respuesta, reverse("users:password_reset_done"))
+        self.assertEqual(len(mail.outbox), 0)
+
+
+class CambiarContrasenaDeOtroTests(TestCase):
+    """Regla explícita del estudio: cambiarle la contraseña a otra persona
+    desde /admin solo lo puede hacer un superusuario, y NUNCA a un cliente —
+    ver UsuarioAdmin.user_change_password."""
+
+    def setUp(self):
+        self.superusuario = Usuario.objects.create(
+            username="super.test", rol=Rol.ADMINISTRADOR, is_staff=True, is_superuser=True
+        )
+        self.empleado = Usuario.objects.create(username="empleado.pw.test", rol=Rol.EMPLEADO, is_staff=True)
+        self.empleado.set_password("viejaClave1")
+        self.empleado.save()
+        self.cliente = Usuario.objects.create(username="cliente.pw.test", rol=Rol.CLIENTE)
+        self.cliente.set_password("viejaClave1")
+        self.cliente.save()
+
+    def _url_cambiar(self, usuario):
+        # Nombre de URL hardcodeado por Django dentro de UserAdmin.get_urls()
+        # (viene de auth.User, pero vale igual para nuestro Usuario custom).
+        return reverse("admin:auth_user_password_change", args=[usuario.pk])
+
+    def test_superusuario_puede_cambiarle_la_clave_a_un_empleado(self):
+        c = Client()
+        c.force_login(self.superusuario)
+        respuesta = c.post(self._url_cambiar(self.empleado), {
+            "password1": "ClaveNuevaSegura99",
+            "password2": "ClaveNuevaSegura99",
+        })
+        self.assertEqual(respuesta.status_code, 302)
+        self.empleado.refresh_from_db()
+        self.assertTrue(self.empleado.check_password("ClaveNuevaSegura99"))
+
+    def test_superusuario_no_puede_cambiarle_la_clave_a_un_cliente(self):
+        c = Client()
+        c.force_login(self.superusuario)
+        respuesta = c.post(self._url_cambiar(self.cliente), {
+            "password1": "ClaveNuevaSegura99",
+            "password2": "ClaveNuevaSegura99",
+        })
+        self.assertEqual(respuesta.status_code, 302)  # redirige con error, no aplica el cambio
+        self.cliente.refresh_from_db()
+        self.assertTrue(self.cliente.check_password("viejaClave1"))
+        self.assertFalse(self.cliente.check_password("ClaveNuevaSegura99"))
+
+    def test_un_empleado_no_superusuario_no_puede_cambiar_ninguna_clave(self):
+        c = Client()
+        c.force_login(self.empleado)
+        respuesta = c.get(self._url_cambiar(self.empleado))
+        self.assertEqual(respuesta.status_code, 403)

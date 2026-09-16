@@ -330,7 +330,6 @@
     <a href="{% url 'studio:inicio' %}#contacto">Contacto</a>
     <div class="divider"></div>
     {% if user.is_authenticated %}
-      <a href="{% url 'appointments:reservar' %}">Reservar turno</a>
       <a href="{% url 'appointments:mis_citas' %}">Mis citas</a>
       <form method="post" action="{% url 'users:logout' %}">
         {% csrf_token %}

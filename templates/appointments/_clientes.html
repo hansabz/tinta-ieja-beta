@@ -1,0 +1,11 @@
+{% if clientes %}
+  <div class="clientes-grid">
+    {% for cliente in clientes %}
+      <button type="button" class="cliente-opcion" data-id="{{ cliente.pk }}">
+        {{ cliente.get_full_name|default:cliente.username }}{% if cliente.get_full_name %} ({{ cliente.username }}){% endif %}
+      </button>
+    {% endfor %}
+  </div>
+{% elif clientes is not None %}
+  <p class="empty-note">Ningún cliente coincide con esa búsqueda.</p>
+{% endif %}

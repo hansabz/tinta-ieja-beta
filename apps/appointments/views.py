@@ -1,16 +1,23 @@
-"""Vistas del sistema de citas para el CLIENTE (reservar y ver las propias).
+"""Vistas del sistema de citas.
 
-Todo lo que hace el EMPLEADO/tatuador (marcar terminada, subir la foto de
-resultado, publicarla en el portafolio, borrar del historial) vive en
-apps/appointments/admin.py — se maneja desde /admin, como pidió el estudio,
-no acá.
+Desde que el estudio decidió que los EMPLEADOS son quienes cargan las
+reservas (no el cliente por su cuenta), "reservar" y sus endpoints de apoyo
+(buscar horarios, buscar cliente) son solo para staff — ver `_es_staff`.
+"mis_citas" sigue siendo del cliente: ahí ve el estado de sus citas y la
+foto de resultado, aunque no las haya cargado él mismo.
+
+Todo lo que hace el EMPLEADO/tatuador para CERRAR una cita (marcar
+terminada, subir la foto de resultado, publicarla en el portafolio, borrar
+del historial) vive en apps/appointments/admin.py, no acá.
 """
 
 from datetime import datetime
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -19,12 +26,36 @@ from django_ratelimit.decorators import ratelimit
 
 from .forms import ReservaForm
 from .models import Cita, EstadoSesion, SesionCita
-from .services import ConflictoDeHorario, horas_disponibles, limpiar_historial_vencido, link_notificacion_cita, validar_nueva_sesion
+from .services import (
+    ConflictoDeHorario,
+    horas_disponibles,
+    limpiar_historial_vencido,
+    link_notificacion_cita,
+    validar_nueva_sesion,
+)
+
+Usuario = get_user_model()
 
 
-@login_required
+def _es_staff(usuario):
+    return usuario.is_authenticated and usuario.is_staff
+
+
+# Todas las vistas de esta sección (menos mis_citas) requieren estar logueado
+# Y ser staff — el cliente ya no reserva por su cuenta (ver el chat/WhatsApp/
+# formulario de contacto para eso). login_url manda a la pantalla normal de
+# login en vez de a la de /admin, que es más agresiva y no forma parte del
+# resto del sitio.
+staff_required = user_passes_test(_es_staff, login_url="users:login")
+
+
+@staff_required
 def reservar(request):
-    form = ReservaForm(request.POST or None)
+    form = ReservaForm(request.POST or None, usuario=request.user)
+    cliente_seleccionado = None
+    cliente_id = request.POST.get("cliente_id") or request.GET.get("cliente_id")
+    if cliente_id:
+        cliente_seleccionado = Usuario.objects.filter(pk=cliente_id, rol="CLIENTE").first()
 
     if request.method == "POST" and form.is_valid():
         numero_sesiones = form.cleaned_data["numero_sesiones"]
@@ -34,10 +65,13 @@ def reservar(request):
         config = ConfiguracionEstudio.obtener()
         duracion = config.duracion_sesion_minutos_default
 
+        errores = []
+        if cliente_seleccionado is None:
+            errores.append("Elegí para qué cliente es la reserva (buscalo arriba y seleccionalo).")
+
         # Cada sesión llega como un campo oculto "sesion_1_inicio", "sesion_2_inicio", ...
         # con un ISO datetime elegido en el calendario (ver template + JS).
         horarios = []
-        errores = []
         for n in range(1, numero_sesiones + 1):
             crudo = request.POST.get(f"sesion_{n}_inicio")
             if not crudo:
@@ -70,7 +104,7 @@ def reservar(request):
                         provisorias.append(inicio)
 
                     cita = Cita.objects.create(
-                        cliente=request.user,
+                        cliente=cliente_seleccionado,
                         tatuador=tatuador,
                         estilo=form.cleaned_data["estilo"],
                         numero_sesiones=numero_sesiones,
@@ -87,17 +121,42 @@ def reservar(request):
         for error in errores:
             messages.error(request, error)
 
+    hoy = timezone.localdate()
+    from apps.studio.models import ConfiguracionEstudio
+
+    limite = hoy + timezone.timedelta(days=ConfiguracionEstudio.obtener().horizonte_reserva_dias)
     return render(
         request,
         "appointments/reservar.html",
-        {"form": form, "hoy": timezone.localdate().isoformat()},
+        {
+            "form": form,
+            "hoy": hoy.isoformat(),
+            "limite": limite.isoformat(),
+            "cliente_seleccionado": cliente_seleccionado,
+        },
     )
 
 
-@login_required
+@staff_required
+@require_GET
+@ratelimit(key="ip", rate="30/m", method="GET", block=True)
+def buscar_clientes(request):
+    """Endpoint de búsqueda para elegir a quién es la cita — ver reservar.html."""
+    q = (request.GET.get("q") or "").strip()
+    clientes = None
+    if len(q) >= 2:
+        clientes = list(
+            Usuario.objects.filter(rol="CLIENTE")
+            .filter(Q(username__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q))
+            .order_by("first_name", "last_name")[:8]
+        )
+    return render(request, "appointments/_clientes.html", {"clientes": clientes})
+
+
+@staff_required
 def confirmacion(request, pk):
-    cita = Cita.objects.select_related("tatuador__usuario", "estilo").prefetch_related("sesiones").get(
-        pk=pk, cliente=request.user
+    cita = Cita.objects.select_related("cliente", "tatuador__usuario", "estilo").prefetch_related("sesiones").get(
+        pk=pk
     )
     return render(
         request,
@@ -108,6 +167,9 @@ def confirmacion(request, pk):
 
 @login_required
 def mis_citas(request):
+    # A diferencia de las vistas de arriba, esta SÍ es para cualquier cliente
+    # logueado: ver el estado de sus citas y la foto de resultado no cambió,
+    # aunque ahora la reserva la haya cargado un empleado y no él mismo.
     limpiar_historial_vencido()
     citas = (
         Cita.objects.filter(cliente=request.user)
@@ -117,48 +179,27 @@ def mis_citas(request):
     return render(request, "appointments/mis_citas.html", {"citas": citas})
 
 
-@login_required
+@staff_required
 @require_GET
 @ratelimit(key="ip", rate="30/m", method="GET", block=True)
 def horarios_partial(request):
-    """Endpoint HTMX: dado un tatuador (opcional) y una fecha, devuelve los
-    horarios disponibles ese día como botones de radio para el formulario."""
+    """Endpoint de apoyo: dado un tatuador y una fecha, devuelve los horarios
+    disponibles ese día como botones para el formulario de reserva."""
     from apps.artists.models import Empleado
-    from apps.studio.models import ConfiguracionEstudio
 
     sesion_n = request.GET.get("sesion", "1")
     fecha_str = request.GET.get("fecha", "")
     tatuador_id = request.GET.get("tatuador", "")
 
-    config = ConfiguracionEstudio.obtener()
-    duracion = config.duracion_sesion_minutos_default
+    from apps.studio.models import ConfiguracionEstudio
+
+    duracion = ConfiguracionEstudio.obtener().duracion_sesion_minutos_default
 
     try:
         fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
     except ValueError:
         return render(request, "appointments/_horarios.html", {"horarios": [], "sesion_n": sesion_n})
 
-    tatuador = None
-    if tatuador_id:
-        tatuador = Empleado.objects.filter(pk=tatuador_id).first()
-
-    horarios = horas_disponibles(tatuador, fecha, duracion) if tatuador else _horarios_libres_estudio(fecha, duracion)
-    return render(
-        request,
-        "appointments/_horarios.html",
-        {"horarios": horarios, "sesion_n": sesion_n},
-    )
-
-
-def _horarios_libres_estudio(fecha, duracion, hora_apertura=10, hora_cierre=19, paso_minutos=60):
-    """Cuando el cliente no eligió tatuador, se muestran todas las franjas del
-    horario de atención — la asignación real de tatuador la hace el estudio
-    después de recibir el aviso por WhatsApp."""
-    cursor = timezone.datetime.combine(fecha, timezone.datetime.min.time(), tzinfo=timezone.get_current_timezone())
-    cursor = cursor.replace(hour=hora_apertura)
-    limite = cursor.replace(hour=hora_cierre)
-    horarios = []
-    while cursor + timezone.timedelta(minutes=duracion) <= limite:
-        horarios.append(cursor)
-        cursor += timezone.timedelta(minutes=paso_minutos)
-    return horarios
+    tatuador = Empleado.objects.filter(pk=tatuador_id).first() if tatuador_id else None
+    horarios = horas_disponibles(tatuador, fecha, duracion) if tatuador else []
+    return render(request, "appointments/_horarios.html", {"horarios": horarios, "sesion_n": sesion_n})

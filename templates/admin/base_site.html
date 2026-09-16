@@ -1,0 +1,37 @@
+{% extends "admin/base_site.html" %}
+{# Reemplaza los colores genéricos de Django por la paleta del estudio, para #}
+{# que /admin se sienta parte de la misma marca en vez de un panel aparte.   #}
+{# Django admin ya expone estos nombres como variables CSS — no hace falta  #}
+{# tocar ni un solo template de estructura, solo redefinir los valores.     #}
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  :root, html[data-theme="light"] {
+    --brand-red: #8f0f26;
+    --primary: #8f0f26;
+    --primary-fg: #faf4e8;
+    --secondary: #161310;
+    --accent: #e6b333;
+
+    --header-color: #faf4e8;
+    --header-branding-color: #e6b333;
+    --header-bg: #161310;
+    --header-link-color: #faf4e8;
+
+    --breadcrumbs-fg: #e6d9c2;
+    --breadcrumbs-bg: #221d18;
+
+    --link-fg: #8f0f26;
+    --link-hover-color: #c31432;
+    --link-selected-fg: #8f0f26;
+
+    --button-bg: #8f0f26;
+    --button-hover-bg: #c31432;
+    --default-button-bg: #8f0f26;
+    --default-button-hover-bg: #c31432;
+    --selected-row: #f4ead9;
+  }
+  #branding h1 a { font-weight: 600; }
+  div.breadcrumbs a { color: var(--breadcrumbs-fg); }
+</style>
+{% endblock %}

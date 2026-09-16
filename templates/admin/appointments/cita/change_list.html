@@ -1,6 +1,11 @@
 {% extends "admin/change_list.html" %}
 {% block object-tools-items %}
   <li>
+    <a href="{% url 'appointments:reservar' %}" class="button" style="background:var(--brand-red,#b7233c)">
+      + Cargar reserva
+    </a>
+  </li>
+  <li>
     <a href="{% url 'admin:appointments_cita_importar_excel' %}" class="button">
       Importar desde Excel
     </a>

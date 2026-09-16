@@ -53,6 +53,11 @@ class ConfiguracionEstudio(models.Model):
         help_text="Días que una cita terminada permanece visible en el historial (con su "
         "foto de resultado, si tiene) antes de borrarse automáticamente.",
     )
+    horizonte_reserva_dias = models.PositiveSmallIntegerField(
+        default=90,
+        help_text="Hasta cuántos días para adelante se puede agendar una sesión (evita "
+        "reservas absurdamente lejanas, ej. \"dentro de 20 años\"). ~90 días = 3 meses.",
+    )
 
     class Meta:
         verbose_name = "Configuración del estudio"

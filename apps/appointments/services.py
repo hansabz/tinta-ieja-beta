@@ -46,10 +46,29 @@ def sesiones_activas_del_tatuador(tatuador, excluir_sesion_id=None):
     return qs
 
 
+def validar_rango_de_fecha(inicio):
+    """No se puede agendar en el pasado, ni tan lejos en el futuro que deje de
+    tener sentido (ver ConfiguracionEstudio.horizonte_reserva_dias — evita
+    que alguien cargue, sin querer o de joda, una sesión para dentro de
+    20 años). Se valida siempre, tenga o no tenga tatuador asignado."""
+    config = ConfiguracionEstudio.obtener()
+    hoy = timezone.localdate()
+    fecha_pedida = timezone.localtime(inicio).date()
+    if fecha_pedida < hoy:
+        raise ConflictoDeHorario("No se puede agendar una sesión en una fecha que ya pasó.")
+    limite = hoy + timezone.timedelta(days=config.horizonte_reserva_dias)
+    if fecha_pedida > limite:
+        raise ConflictoDeHorario(
+            f"No se puede agendar tan lejos en el futuro — el máximo es hasta "
+            f"{limite:%d/%m/%Y} ({config.horizonte_reserva_dias} días desde hoy)."
+        )
+
+
 def validar_nueva_sesion(tatuador, inicio, duracion_minutos, excluir_sesion_id=None):
     """Lanza ConflictoDeHorario si la sesión propuesta no se puede agendar.
-    Si `tatuador` es None (cliente no eligió a nadie), no hay agenda que
-    validar — la asignación real la hace el gerente después."""
+    Si `tatuador` es None, solo se valida la fecha (rango) — no hay agenda de
+    nadie puntual que chequear."""
+    validar_rango_de_fecha(inicio)
     if tatuador is None:
         return
 

@@ -43,6 +43,14 @@ def _crear_cliente(username):
     return usuario
 
 
+def _client_como(usuario):
+    from django.test import Client
+
+    cliente_http = Client()
+    cliente_http.force_login(usuario)
+    return cliente_http
+
+
 class ReglasDeAgendaTests(TestCase):
     def setUp(self):
         self.tatuador = _crear_tatuador("tatu.test")
@@ -65,10 +73,16 @@ class ReglasDeAgendaTests(TestCase):
         validar_nueva_sesion(self.tatuador, inicio + timedelta(minutes=60), 60)
 
     def test_tope_mensual_por_tatuador(self):
-        # Fechas fijas (no relativas a "hoy") para no cruzar de mes por accidente:
-        # todas caen en enero del año que viene, bien separadas entre sí.
+        # El día 5 del PRÓXIMO mes calendario: siempre dentro del horizonte de
+        # reserva (3 meses) sin importar qué día sea "hoy", y sin cruzar de
+        # mes por accidente entre las sesiones de este test.
         tz = timezone.get_current_timezone()
-        base = timezone.datetime(timezone.now().year + 1, 1, 5, 10, 0, tzinfo=tz)
+        hoy = timezone.localdate()
+        if hoy.month == 12:
+            proximo_mes = hoy.replace(year=hoy.year + 1, month=1, day=1)
+        else:
+            proximo_mes = hoy.replace(month=hoy.month + 1, day=1)
+        base = timezone.datetime(proximo_mes.year, proximo_mes.month, 5, 10, 0, tzinfo=tz)
         for i in range(self.config.max_citas_por_tatuador_mes):
             SesionCita.objects.create(
                 cita=self._cita(), numero=1, inicio=base + timedelta(days=i * 3), duracion_minutos=60
@@ -240,19 +254,131 @@ class ExcelExportImportTests(TestCase):
         self.assertIn("usuario-que-no-existe", resumen["errores"][0])
 
     def test_empleado_no_puede_importar(self):
-        respuesta = self.client_como(self.tatuador.usuario).get(
+        respuesta = _client_como(self.tatuador.usuario).get(
             "/admin/appointments/cita/importar-excel/"
         )
         self.assertEqual(respuesta.status_code, 302)
         self.assertFalse(Cita.objects.filter(cliente=self.cliente).exists())
 
-    def client_como(self, usuario):
-        from django.test import Client
 
-        cliente_http = Client()
+class ValidarRangoDeFechaTests(TestCase):
+    """El estudio pidió: nada de fechas pasadas, y nada tan lejos en el
+    futuro que no tenga sentido (ver ConfiguracionEstudio.horizonte_reserva_dias)."""
+
+    def setUp(self):
+        self.config = ConfiguracionEstudio.obtener()
+
+    def test_rechaza_fecha_pasada(self):
+        from .services import validar_rango_de_fecha
+
+        with self.assertRaises(ConflictoDeHorario):
+            validar_rango_de_fecha(timezone.now() - timedelta(days=1))
+
+    def test_rechaza_fecha_mas_alla_del_horizonte(self):
+        from .services import validar_rango_de_fecha
+
+        with self.assertRaises(ConflictoDeHorario):
+            validar_rango_de_fecha(timezone.now() + timedelta(days=self.config.horizonte_reserva_dias + 5))
+
+    def test_acepta_fecha_dentro_del_horizonte(self):
+        from .services import validar_rango_de_fecha
+
+        validar_rango_de_fecha(timezone.now() + timedelta(days=self.config.horizonte_reserva_dias - 1))  # no debe lanzar
+
+    def test_acepta_hoy_mismo(self):
+        from .services import validar_rango_de_fecha
+
+        validar_rango_de_fecha(timezone.now())  # no debe lanzar
+
+
+class ReservaPorEmpleadoTests(TestCase):
+    """Ahora reserva el empleado (o el gerente), no el cliente por su cuenta
+    — ver views.reservar. El cliente sigue viendo sus citas en "Mis citas",
+    solo que ya no las carga él."""
+
+    def setUp(self):
+        self.tatuador = _crear_tatuador("tatu.reserva")
+        self.otro_tatuador = _crear_tatuador("otro.reserva")
+        self.cliente = _crear_cliente("cliente.reserva")
+        self.administrador = Usuario.objects.create(
+            username="gerente.reserva", rol=Rol.ADMINISTRADOR, is_staff=True, is_superuser=True
+        )
+
+    def _login_como(self, usuario):
+        cliente_http = self.client
         cliente_http.force_login(usuario)
         return cliente_http
 
+    def test_cliente_no_puede_entrar_a_reservar(self):
+        c = self._login_como(self.cliente)
+        respuesta = c.get("/citas/reservar/")
+        self.assertNotEqual(respuesta.status_code, 200)
+
+    def test_anonimo_no_puede_entrar_a_reservar(self):
+        respuesta = self.client.get("/citas/reservar/")
+        self.assertNotEqual(respuesta.status_code, 200)
+
+    def test_empleado_puede_entrar_y_solo_se_ve_a_si_mismo_como_tatuador(self):
+        c = self._login_como(self.tatuador.usuario)
+        respuesta = c.get("/citas/reservar/")
+        self.assertEqual(respuesta.status_code, 200)
+        opciones_tatuador = list(respuesta.context["form"].fields["tatuador"].queryset)
+        self.assertEqual(opciones_tatuador, [self.tatuador])
+
+    def test_administrador_puede_elegir_cualquier_tatuador(self):
+        c = self._login_como(self.administrador)
+        respuesta = c.get("/citas/reservar/")
+        # Debe ver a los dos tatuadores de este test, además de los que ya
+        # hubiera de antes (los 3 de ejemplo que trae la beta sembrados).
+        opciones_tatuador = set(respuesta.context["form"].fields["tatuador"].queryset)
+        self.assertIn(self.tatuador, opciones_tatuador)
+        self.assertIn(self.otro_tatuador, opciones_tatuador)
+
+    def test_empleado_reserva_para_un_cliente_elegido(self):
+        c = self._login_como(self.tatuador.usuario)
+        inicio = timezone.localtime(timezone.now() + timedelta(days=5)).replace(
+            hour=11, minute=0, second=0, microsecond=0
+        )
+        respuesta = c.post("/citas/reservar/", {
+            "cliente_id": self.cliente.pk,
+            "tatuador": self.tatuador.pk,
+            "estilo": "",
+            "numero_sesiones": 1,
+            "notas": "",
+            "sesion_1_inicio": inicio.isoformat(),
+        })
+        self.assertEqual(respuesta.status_code, 302)
+        cita = Cita.objects.get(cliente=self.cliente)
+        self.assertEqual(cita.tatuador, self.tatuador)
+
+    def test_empleado_no_puede_reservar_en_la_agenda_de_otro(self):
+        # Aunque lo mande a mano en el POST (saltándose el <select>), el
+        # tatuador queda fijado a sí mismo del lado del servidor.
+        c = self._login_como(self.tatuador.usuario)
+        inicio = timezone.localtime(timezone.now() + timedelta(days=5)).replace(
+            hour=11, minute=0, second=0, microsecond=0
+        )
+        respuesta = c.post("/citas/reservar/", {
+            "cliente_id": self.cliente.pk,
+            "tatuador": self.otro_tatuador.pk,
+            "estilo": "",
+            "numero_sesiones": 1,
+            "notas": "",
+            "sesion_1_inicio": inicio.isoformat(),
+        })
+        self.assertEqual(respuesta.status_code, 302)
+        cita = Cita.objects.get(cliente=self.cliente)
+        self.assertEqual(cita.tatuador, self.tatuador)  # no "otro.reserva"
+
+    def test_buscar_clientes_filtra_por_nombre(self):
+        c = self._login_como(self.administrador)
+        respuesta = c.get("/citas/reservar/clientes/?q=reserva")
+        self.assertContains(respuesta, "cliente.reserva")
+
+    def test_buscar_clientes_requiere_staff(self):
+        c = self._login_como(self.cliente)
+        respuesta = c.get("/citas/reservar/clientes/?q=reserva")
+        self.assertNotEqual(respuesta.status_code, 200)
 
 def _libro_citas(filas):
     """Arma un .xlsx en memoria con una hoja "Citas" para probar importar_citas_excel."""

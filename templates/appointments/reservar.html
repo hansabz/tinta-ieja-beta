@@ -2,15 +2,24 @@
 {% block content %}
 <section class="section" style="background:var(--cream)" id="reservar">
   <div class="section-head reveal">
-    <span class="eyebrow tag-gold">Turnos</span>
-    <h2>Reservá tu tatuaje</h2>
-    <p>Elegí cuántas sesiones necesita tu idea, con quién querés hacerlo (si tenés preferencia) y los
-      horarios — nunca vas a poder elegir uno que ya esté ocupado.</p>
+    <span class="eyebrow tag-gold">Panel del estudio</span>
+    <h2>Cargar una reserva</h2>
+    <p>Buscá al cliente, elegí cuántas sesiones necesita y los horarios — nunca vas a poder
+      elegir uno que ya esté ocupado, ni una fecha pasada, ni una tan lejos en el futuro que no
+      tenga sentido.</p>
   </div>
 
   <form method="post" id="reservaForm" novalidate>
     {% csrf_token %}
     <div class="mini-form" style="max-width:560px">
+      <label for="buscarCliente">Cliente</label>
+      <input type="text" id="buscarCliente" placeholder="Buscar por nombre o usuario…" autocomplete="off">
+      <div id="clienteResultado"></div>
+      <input type="hidden" name="cliente_id" id="clienteId" value="{{ cliente_seleccionado.pk|default:'' }}">
+      {% if cliente_seleccionado %}
+        <p class="hint" id="clienteElegidoTexto">Elegido: <b>{{ cliente_seleccionado.get_full_name|default:cliente_seleccionado.username }}</b></p>
+      {% endif %}
+
       {{ form.tatuador.label_tag }} {{ form.tatuador }}
       {{ form.estilo.label_tag }} {{ form.estilo }}
       {{ form.numero_sesiones.label_tag }} {{ form.numero_sesiones }}
@@ -29,6 +38,9 @@
   .horarios-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
   .horario-chip{cursor:pointer;border:1px solid var(--ink,#222);background:none}
   .horario-chip.elegido{background:var(--gold,#c9a227);color:#111;font-weight:700}
+  .clientes-grid{display:flex;flex-direction:column;border:1px solid var(--cream-2,#ddd);border-radius:6px;overflow:hidden;margin-top:-4px}
+  .cliente-opcion{text-align:left;padding:8px 10px;border:none;background:var(--paper,#fff);cursor:pointer;border-bottom:1px solid var(--cream-2,#eee)}
+  .cliente-opcion:hover{background:var(--cream,#f4ead9)}
 </style>
 
 <script>
@@ -38,14 +50,41 @@
   var selectNumero = document.querySelector('#reservaForm select[name="numero_sesiones"]');
   var selectTatuador = document.querySelector('#reservaForm select[name="tatuador"]');
   var hoy = "{{ hoy }}";
+  var limite = "{{ limite }}";
 
+  // --- Buscador de cliente -------------------------------------------------
+  var inputBuscar = document.getElementById('buscarCliente');
+  var resultadoDiv = document.getElementById('clienteResultado');
+  var clienteIdInput = document.getElementById('clienteId');
+  var timeoutBusqueda;
+
+  inputBuscar.addEventListener('input', function () {
+    clearTimeout(timeoutBusqueda);
+    var q = inputBuscar.value.trim();
+    if (q.length < 2) { resultadoDiv.innerHTML = ''; return; }
+    timeoutBusqueda = setTimeout(function () {
+      fetch("{% url 'appointments:buscar_clientes' %}?q=" + encodeURIComponent(q))
+        .then(function (r) { return r.text(); })
+        .then(function (html) { resultadoDiv.innerHTML = html; });
+    }, 250);
+  });
+
+  resultadoDiv.addEventListener('click', function (ev) {
+    if (ev.target.classList.contains('cliente-opcion')) {
+      clienteIdInput.value = ev.target.dataset.id;
+      inputBuscar.value = ev.target.textContent.trim();
+      resultadoDiv.innerHTML = '';
+    }
+  });
+
+  // --- Sesiones (fecha + horarios) -----------------------------------------
   function bloqueSesion(n) {
     var div = document.createElement('div');
     div.className = 'sesion-block';
     div.dataset.sesion = n;
     div.innerHTML =
       '<h4>Sesión ' + n + '</h4>' +
-      '<input type="date" min="' + hoy + '" class="fecha-sesion">' +
+      '<input type="date" min="' + hoy + '" max="' + limite + '" class="fecha-sesion">' +
       ' <button type="button" class="btn btn-outline ver-horarios">Ver horarios disponibles</button>' +
       '<div class="horarios-resultado"></div>' +
       '<input type="hidden" name="sesion_' + n + '_inicio">';

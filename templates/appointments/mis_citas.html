@@ -4,7 +4,9 @@
   <div class="section-head reveal">
     <span class="eyebrow tag-gold">Turnos</span>
     <h2>Mis citas</h2>
-    <p><a class="btn btn-outline-dark" href="{% url 'appointments:reservar' %}">Reservar otro turno</a></p>
+    {% if user.is_staff %}
+      <p><a class="btn btn-outline-dark" href="{% url 'appointments:reservar' %}">Cargar otra reserva</a></p>
+    {% endif %}
   </div>
 
   {% for cita in citas %}
@@ -25,7 +27,7 @@
       {% endif %}
     </div>
   {% empty %}
-    <p class="empty-note">Todavía no reservaste ningún turno.</p>
+    <p class="empty-note">Todavía no tenés ninguna cita cargada. Para reservar un turno, escribinos por el chat, WhatsApp o el formulario de contacto.</p>
   {% endfor %}
 </section>
 

@@ -16,6 +16,9 @@ Postgres (Neon) + almacenamiento de imágenes S3-compatible (Backblaze B2) +
 hosting en Render, todo en capa gratuita. Documentación completa orientada al
 usuario final (el gerente del estudio) en `docs/Tinta_Vieja_Documentacion.docx`
 — este archivo es el complementario, orientado a quien vaya a tocar código.
+**`docs/ESTADO_DEL_PROYECTO.md`** es un tercer documento — el resumen de
+continuidad de la última sesión de trabajo (qué se hizo, qué falta, último
+commit) para retomar sin releer todo el historial de git.
 
 ## Antes de tocar nada
 
@@ -58,6 +61,11 @@ alguno de estos deje de cumplirse, es un bug, no un "detalle":
 6. El chatbot de IA **nunca inventa una respuesta** cuando no puede contestar
    — crea una `SolicitudContacto` real y ofrece hablar con una persona
    (`services/ai/chat_service.py`).
+7. **Las citas las reserva un empleado (solo en su propia agenda) o el
+   administrador (en cualquier agenda) — nunca el cliente por su cuenta.**
+   `apps/appointments/views.py` (`staff_required`) y `forms.py` (el campo
+   `tatuador` se restringe/deshabilita según el rol de quien reserva). Un
+   cliente pide turno por chat/WhatsApp/contacto, no desde `/citas/reservar/`.
 
 ## Gotchas ya encontrados (para no perder tiempo redescubriéndolos)
 
@@ -86,6 +94,34 @@ alguno de estos deje de cumplirse, es un bug, no un "detalle":
   first_name/last_name/rol en el alta**, solo usuario/contraseña — causó
   cuentas creadas con datos a medias. Se corrigió con un `add_fieldsets`
   custom en `UsuarioAdmin`.
+- **`django-allauth` necesita `PyJWT[crypto]` para el proveedor de Google**
+  (verifica la firma RS256 del ID token) y NO es una dependencia obligatoria
+  del paquete — si falta, el callback de Google (`/accounts/google/login/
+  callback/`) tira 500 con `ModuleNotFoundError: No module named 'jwt'`. Ya
+  está en `requirements.txt`, pero si se reinstala el entorno desde cero sin
+  ese archivo, vuelve a faltar.
+- **Una conexión SMTP sin timeout que se cuelga tumba TODO el sitio, no solo
+  el request que la disparó** — el worker de Gunicorn queda bloqueado
+  esperando una respuesta que nunca llega (pasó de verdad con una cuenta de
+  Gmail recién creada) y Render responde 502 a cualquiera que esté
+  navegando en ese momento. `EMAIL_TIMEOUT` en `settings.py` es obligatorio
+  con cualquier backend SMTP real, no opcional. Ojo: Django 6.1 ya atrapa
+  internamente las excepciones de `PasswordResetForm.send_mail()` (las
+  loguea y sigue) — un 500 clásico por credenciales mal cargadas NO pasa en
+  esa vista puntual; lo que sí pasa sin timeout es el 502 por cuelgue.
+- **`.btn-outline` (texto/borde dorado) está pensado para fondos oscuros**
+  (el hero); `.btn-outline-dark` (texto/borde oscuro) es la variante para
+  fondos claros (`--cream`/`--paper`). Usar la que no corresponde dejó
+  botones prácticamente ilegibles más de una vez — revisar el fondo real
+  del contenedor antes de elegir cuál usar.
+- **Un elemento que se ve clickeable (cursor:pointer, hover, `<button>`) no
+  significa que esté conectado a algo.** Esta sesión encontró varios
+  (`href="#"` sin JS real detrás, un botón "Ver toda la galería" sin
+  ninguna página destino, chips de "vista previa" del chat sin listener) que
+  quedaron así desde el diseño original y nadie los completó. Antes de dar
+  por terminada una pasada por templates: `grep -rn 'href="#"' templates/`
+  y revisar cada `<button>` sin `type="submit"` para confirmar que tenga un
+  handler real.
 
 ## Estructura del código
 
@@ -94,7 +130,7 @@ apps/
   users/        Usuario (custom, con `rol`), Cliente, registro, login, reset de contraseña
   artists/      Empleado (perfil de trabajo del tatuador)
   appointments/ Cita, SesionCita, calendario de reserva, reglas de negocio, Excel
-  gallery/      Estilo, Etiqueta, Obra (portafolio público)
+  gallery/      Estilo, Etiqueta, Obra (portafolio público) + vista /galeria/ con filtros
   studio/       ConfiguracionEstudio (singleton, todos los números ajustables desde /admin)
   contacts/     SolicitudContacto
   chatbot/      Conversacion, Mensaje — la IA vive en services/ai/, no acá

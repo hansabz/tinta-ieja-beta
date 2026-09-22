@@ -679,38 +679,52 @@
     if (row) row.remove();
   }
 
+  function enviarMensajeChat(texto){
+    texto = (texto || '').trim();
+    if (!texto) return;
+    agregarBurbujaUsuario(texto);
+    if (chatInput) chatInput.value = '';
+    if (chatInput) chatInput.disabled = true;
+    mostrarEscribiendo();
+    fetch('{% url "chatbot:enviar_mensaje" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken'),
+      },
+      body: JSON.stringify({ mensaje: texto }),
+    })
+      .then(function(resp){ return resp.json().catch(function(){ return {}; }); })
+      .then(function(data){
+        ocultarEscribiendo();
+        agregarBurbujaBot(data.respuesta || 'Tuve un problema para responder. ¿Podés intentar de nuevo?');
+      })
+      .catch(function(){
+        ocultarEscribiendo();
+        agregarBurbujaBot('No pude conectarme. Probá de nuevo en un momento.');
+      })
+      .finally(function(){
+        if (chatInput) { chatInput.disabled = false; chatInput.focus(); }
+      });
+  }
+
   if (chatForm) {
     chatForm.addEventListener('submit', function(e){
       e.preventDefault();
-      var texto = (chatInput.value || '').trim();
-      if (!texto) return;
-      agregarBurbujaUsuario(texto);
-      chatInput.value = '';
-      chatInput.disabled = true;
-      mostrarEscribiendo();
-      fetch('{% url "chatbot:enviar_mensaje" %}', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
-        },
-        body: JSON.stringify({ mensaje: texto }),
-      })
-        .then(function(resp){ return resp.json().catch(function(){ return {}; }); })
-        .then(function(data){
-          ocultarEscribiendo();
-          agregarBurbujaBot(data.respuesta || 'Tuve un problema para responder. ¿Podés intentar de nuevo?');
-        })
-        .catch(function(){
-          ocultarEscribiendo();
-          agregarBurbujaBot('No pude conectarme. Probá de nuevo en un momento.');
-        })
-        .finally(function(){
-          chatInput.disabled = false;
-          chatInput.focus();
-        });
+      enviarMensajeChat(chatInput.value);
     });
   }
+
+  // Chips de "vista previa" en la home (Ver estilos / Reservar turno / Hablar
+  // con un empleado): antes no hacían nada al hacer click pese a verse
+  // clickeables (cursor pointer, hover). Ahora abren el chat real y mandan
+  // esa pregunta directo — ver data-enviar-chat en templates/studio/inicio.html.
+  document.querySelectorAll('[data-enviar-chat]').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      abrirChat();
+      enviarMensajeChat(chip.dataset.enviarChat);
+    });
+  });
 })();
 </script>
 {% block extra_scripts %}{% endblock %}

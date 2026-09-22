@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section" style="background:var(--cream)">
+  <div class="section-head reveal">
+    <span class="eyebrow tag-gold">Portafolio</span>
+    <h2>Galería completa</h2>
+    <p>Todo lo que salió del estudio — filtrá por estilo o por artista.</p>
+  </div>
+
+  <div class="galeria-filtros reveal">
+    <div class="filtro-grupo">
+      <span class="filtro-label">Estilo:</span>
+      <a href="?{% if artista_seleccionado %}artista={{ artista_seleccionado }}{% endif %}" class="filtro-chip{% if not estilo_seleccionado %} filtro-chip-activo{% endif %}">Todos</a>
+      {% for estilo in estilos %}
+        <a href="?estilo={{ estilo.pk }}{% if artista_seleccionado %}&artista={{ artista_seleccionado }}{% endif %}" class="filtro-chip{% if estilo_seleccionado == estilo.pk|stringformat:'s' %} filtro-chip-activo{% endif %}">{{ estilo.nombre }}</a>
+      {% endfor %}
+    </div>
+    <div class="filtro-grupo">
+      <span class="filtro-label">Artista:</span>
+      <a href="?{% if estilo_seleccionado %}estilo={{ estilo_seleccionado }}{% endif %}" class="filtro-chip{% if not artista_seleccionado %} filtro-chip-activo{% endif %}">Todos</a>
+      {% for artista in artistas %}
+        <a href="?artista={{ artista.pk }}{% if estilo_seleccionado %}&estilo={{ estilo_seleccionado }}{% endif %}" class="filtro-chip{% if artista_seleccionado == artista.pk|stringformat:'s' %} filtro-chip-activo{% endif %}">{{ artista.usuario.get_full_name|default:artista.usuario.username }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="gallery-grid reveal-group">
+    {% for obra in obras %}
+    <div class="g-card">
+      <div class="flash-card">
+        <img src="{{ obra.imagen.url }}" alt="{{ obra.titulo }}">
+      </div>
+      <div class="g-meta">
+        <h4>{{ obra.titulo }}</h4>
+        <span>por {{ obra.artista.usuario.get_full_name|default:obra.artista.usuario.username }}</span>
+        <span class="chip">{{ obra.estilo.nombre }}</span>
+      </div>
+    </div>
+    {% empty %}
+    <p class="empty-note">
+      {% if estilo_seleccionado or artista_seleccionado %}
+        No hay trabajos con ese filtro todavía.
+      {% else %}
+        Todavía no hay trabajos cargados — se van a ir sumando a medida que el estudio suba fotos reales desde el panel administrativo.
+      {% endif %}
+    </p>
+    {% endfor %}
+  </div>
+
+  {% if is_paginated %}
+  <div class="galeria-paginacion reveal">
+    {% if page_obj.has_previous %}
+      <a class="btn btn-outline-dark" href="?page={{ page_obj.previous_page_number }}{% if estilo_seleccionado %}&estilo={{ estilo_seleccionado }}{% endif %}{% if artista_seleccionado %}&artista={{ artista_seleccionado }}{% endif %}">&larr; Anteriores</a>
+    {% endif %}
+    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a class="btn btn-outline-dark" href="?page={{ page_obj.next_page_number }}{% if estilo_seleccionado %}&estilo={{ estilo_seleccionado }}{% endif %}{% if artista_seleccionado %}&artista={{ artista_seleccionado }}{% endif %}">Siguientes &rarr;</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+
+<style>
+  .galeria-filtros{display:flex;flex-direction:column;gap:12px;margin-bottom:8px}
+  .filtro-grupo{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .filtro-label{font-weight:700;font-size:12.5px;color:var(--ink-soft);margin-right:4px}
+  .filtro-chip{display:inline-block;border:1.5px solid var(--ink-soft);border-radius:20px;padding:5px 12px;font-size:12.5px;color:var(--ink)}
+  .filtro-chip-activo{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .galeria-paginacion{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:8px}
+</style>
+{% endblock %}

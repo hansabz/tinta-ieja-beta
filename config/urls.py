@@ -10,6 +10,7 @@ urlpatterns = [
     path("contacto/", include("apps.contacts.urls")),
     path("chat/", include("apps.chatbot.urls")),
     path("citas/", include("apps.appointments.urls")),
+    path("galeria/", include("apps.gallery.urls")),
     path("", include("apps.studio.urls")),
 ]
 

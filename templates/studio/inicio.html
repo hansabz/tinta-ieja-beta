@@ -88,7 +88,7 @@
   </div>
   {% if obras %}
   <div class="gallery-cta">
-    <button class="btn btn-outline-dark" type="button">Ver toda la galería</button>
+    <a class="btn btn-outline-dark" href="{% url 'gallery:galeria' %}">Ver toda la galería</a>
   </div>
   {% endif %}
 </section>
@@ -158,9 +158,9 @@
         <div class="typing-dots"><span></span><span></span><span></span></div>
       </div>
       <div class="quick-replies">
-        <span class="qr-chip">Ver estilos</span>
-        <span class="qr-chip">Reservar turno</span>
-        <span class="qr-chip human">Hablar con un empleado</span>
+        <span class="qr-chip" data-enviar-chat="¿Qué estilos de tatuaje trabajan?">Ver estilos</span>
+        <span class="qr-chip" data-enviar-chat="¿Cómo reservo un turno?">Reservar turno</span>
+        <span class="qr-chip human" data-enviar-chat="Quiero hablar con un empleado">Hablar con un empleado</span>
       </div>
       <div class="chat-input-row">
         <span class="fake-input">Escribí tu mensaje… (todavía no conectado)</span>

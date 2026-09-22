@@ -228,6 +228,14 @@ EMAIL_HOST_PASSWORD = env_str("EMAIL_HOST_PASSWORD")
 EMAIL_HOST = env_str("EMAIL_HOST", default="smtp.gmail.com")
 EMAIL_PORT = env.int("EMAIL_PORT", default=587)
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+# Sin esto, una conexión SMTP que no responde (pasó de verdad: una cuenta de
+# Gmail recién creada tardando en aceptar la conexión) se queda colgada
+# indefinidamente y termina tumbando todo el worker — Render lo ve como
+# "servicio caído" y devuelve 502 a cualquiera que esté navegando en ese
+# momento, no solo a quien pidió el restablecimiento. Con el timeout, en vez
+# de colgarse falla rápido y Django lo loguea y sigue (ver
+# PasswordResetForm.send_mail, que ya atrapa el error).
+EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
 DEFAULT_FROM_EMAIL = env_str("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER or "no-responder@tintavieja.local")
 if EMAIL_HOST_USER:
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

@@ -7,6 +7,13 @@ class ConfiguracionEstudio(models.Model):
 
     nombre = models.CharField(max_length=120, default="Tinta Vieja")
     descripcion = models.TextField(blank=True)
+    foto = models.ImageField(
+        upload_to="estudio/",
+        blank=True,
+        null=True,
+        help_text="Foto de portada de la home (el local, un artista tatuando, etc.) — se sube "
+        "directo desde tu computadora. Si se deja vacío, se muestra un espacio reservado.",
+    )
     direccion = models.CharField(max_length=255, blank=True)
     horarios = models.CharField(max_length=255, blank=True)
     telefono = models.CharField(max_length=50, blank=True)
@@ -17,9 +24,18 @@ class ConfiguracionEstudio(models.Model):
         "El chatbot lo ofrece cuando piden hablar con alguien y no hay un artista específico.",
     )
     correo = models.EmailField(blank=True)
-    redes_sociales = models.JSONField(blank=True, default=dict)
+    instagram_url = models.URLField(
+        blank=True, help_text="Link completo a tu perfil, ej: https://instagram.com/tuestudio"
+    )
+    tiktok_url = models.URLField(
+        blank=True, help_text="Link completo a tu perfil, ej: https://tiktok.com/@tuestudio"
+    )
     politicas = models.TextField(blank=True)
-    cuidados = models.TextField(blank=True)
+    cuidados = models.TextField(
+        blank=True,
+        help_text="Se muestra en la home, en la sección \"Cuidados post-tatuaje\" (el link del "
+        "pie de página lleva ahí). También lo usa el chatbot para responder sobre cuidados.",
+    )
     mensaje_transferencia_ia = models.TextField(
         default="Claro, para ofrecerte un mejor servicio se te contactará con {artista}. Agradecemos tu paciencia."
     )

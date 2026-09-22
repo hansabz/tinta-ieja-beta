@@ -18,10 +18,14 @@
     </div>
     <div class="hero-photo">
       <div class="flash-card">
-        <div class="placeholder">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="13" r="3.4" stroke="currentColor" stroke-width="1.6"/></svg>
-          <span>Foto del estudio o de un artista tatuando (a reemplazar por contenido real)</span>
-        </div>
+        {% if estudio.foto %}
+          <img src="{{ estudio.foto.url }}" alt="{{ estudio.nombre }}">
+        {% else %}
+          <div class="placeholder">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="13" r="3.4" stroke="currentColor" stroke-width="1.6"/></svg>
+            <span>Foto del estudio o de un artista tatuando (a reemplazar por contenido real)</span>
+          </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -110,6 +114,20 @@
     {% empty %}
     <p class="empty-note" style="color:#c9bda5">Todavía no hay artistas cargados en el panel administrativo.</p>
     {% endfor %}
+  </div>
+</section>
+
+<section class="section" style="background:var(--cream)" id="cuidados">
+  <div class="section-head reveal">
+    <span class="eyebrow tag-gold">Después del tatuaje</span>
+    <h2>Cuidados post-tatuaje</h2>
+  </div>
+  <div class="mini-form reveal" style="max-width:640px">
+    {% if estudio.cuidados %}
+      <p style="white-space:pre-line">{{ estudio.cuidados }}</p>
+    {% else %}
+      <p class="empty-note">Todavía no se cargaron los cuidados post-tatuaje en el panel administrativo.</p>
+    {% endif %}
   </div>
 </section>
 

@@ -366,15 +366,17 @@
     </div>
     <div class="footer-col">
       <b>Ayuda</b>
-      <a href="#">Chat del estudio</a>
-      <a href="#">Cuidados post-tatuaje</a>
+      <a href="#" data-abrir-chat>Chat del estudio</a>
+      <a href="{% url 'studio:inicio' %}#cuidados">Cuidados post-tatuaje</a>
       <a href="{% url 'studio:inicio' %}#contacto">Contacto</a>
     </div>
+    {% if estudio.instagram_url or estudio.tiktok_url %}
     <div class="footer-col">
       <b>Síguenos</b>
-      <a href="#">Instagram</a>
-      <a href="#">TikTok</a>
+      {% if estudio.instagram_url %}<a href="{{ estudio.instagram_url }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
+      {% if estudio.tiktok_url %}<a href="{{ estudio.tiktok_url }}" target="_blank" rel="noopener">TikTok</a>{% endif %}
     </div>
+    {% endif %}
   </div>
   <div class="footer-bottom">
     <span>© 2026 {{ estudio.nombre }}. Nombre de ejemplo para esta beta.</span>

@@ -29,7 +29,8 @@ def consultar_informacion_estudio(args, contexto):
         "direccion": estudio.direccion,
         "horarios": estudio.horarios,
         "telefono": estudio.telefono,
-        "redes_sociales": estudio.redes_sociales,
+        "instagram": estudio.instagram_url,
+        "tiktok": estudio.tiktok_url,
         "politicas": estudio.politicas,
         "cuidados": estudio.cuidados,
     }

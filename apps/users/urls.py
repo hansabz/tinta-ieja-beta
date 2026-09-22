@@ -13,7 +13,7 @@ urlpatterns = [
     # (ver templates/users/password_reset_*.html) para que se vean parte del sitio.
     path(
         "restablecer/",
-        auth_views.PasswordResetView.as_view(
+        views.SolicitarRestablecerContrasenaView.as_view(
             template_name="users/password_reset_form.html",
             email_template_name="users/password_reset_email.html",
             subject_template_name="users/password_reset_subject.txt",

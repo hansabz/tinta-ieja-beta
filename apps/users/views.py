@@ -1,10 +1,18 @@
+import logging
+import smtplib
+
+from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth import views as auth_views
 from django.http import HttpResponseRedirect
-from django.urls import reverse_lazy
+from django.shortcuts import redirect
+from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView
 
 from .forms import RegistroForm
 from .models import Cliente, Rol
+
+logger = logging.getLogger("apps.users")
 
 
 class RegistroView(CreateView):
@@ -30,3 +38,23 @@ class RegistroView(CreateView):
         # explota acá con un 500 (justo lo que pasó en producción).
         login(self.request, usuario, backend="django.contrib.auth.backends.ModelBackend")
         return HttpResponseRedirect(self.get_success_url())
+
+
+class SolicitarRestablecerContrasenaView(auth_views.PasswordResetView):
+    """Igual al PasswordResetView de Django, pero si el envío de email falla
+    (credenciales SMTP mal cargadas, Gmail caído, lo que sea) NUNCA muestra
+    un error 500 — honestidad ante todo: se avisa con un mensaje claro en vez
+    de una pantalla rota. Esto pasó de verdad en producción con una
+    contraseña de aplicación de Gmail mal configurada."""
+
+    def form_valid(self, form):
+        try:
+            return super().form_valid(form)
+        except smtplib.SMTPException:
+            logger.exception("No se pudo enviar el email de restablecer contraseña")
+            messages.error(
+                self.request,
+                "No pudimos enviar el email en este momento (falló el envío desde el servidor). "
+                "Probá de nuevo en un rato, o contactanos directamente para que te ayudemos a entrar.",
+            )
+            return redirect(reverse("users:password_reset"))

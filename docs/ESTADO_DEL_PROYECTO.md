@@ -4,7 +4,8 @@
 > conversación nueva. Complementa a `AGENTS.md` (reglas y gotchas para
 > cualquier agente de IA que toque el código) y a
 > `docs/Tinta_Vieja_Documentacion.docx` (manual para el gerente/usuario final).
-> Última actualización: después del commit `58d465c`.
+> Última actualización: después de agregar `apps/legal/` (documentos
+> legales + aviso de cookies), commit siguiente a `88d098e`.
 
 ---
 
@@ -38,6 +39,13 @@ no es el sitio real del estudio (ver sección 3, pendientes).
   la vista previa de la home que abren el chat real con una pregunta
   precargada.
 - Formulario de contacto (crea una `SolicitudContacto`, rate-limited).
+- **Documentos legales** (`/legal/`): Política de privacidad, Términos y
+  condiciones, Términos del servicio de tatuaje y Política de cookies —
+  las 4 páginas, con un texto modelo real (no placeholder vacío),
+  enlazadas desde el footer.
+- **Aviso de cookies** (banner fijo abajo, en todas las páginas): explica
+  que solo se usan cookies esenciales, botones Aceptar/Rechazar, guarda la
+  preferencia en `localStorage` (nunca en el servidor).
 
 ### Cuentas y seguridad
 - Registro público — **siempre** crea `rol=CLIENTE`, nunca staff/superuser
@@ -141,6 +149,10 @@ no es el sitio real del estudio (ver sección 3, pendientes).
   lanzamiento real.
 - Nada de esto tiene plan pago todavía — limitaciones del free tier
   siguen activas (Render se duerme sin tráfico, límites de Neon/Backblaze).
+- Los 4 documentos legales (`/legal/`) son un **modelo estándar de
+  redacción**, no texto revisado por un abogado — está bien para la beta,
+  pero antes de un lanzamiento comercial real conviene que un profesional
+  legal los revise y los adapte al país donde opera el estudio.
 
 ---
 
@@ -175,6 +187,15 @@ global del admin, reordenar apps, ocultar modelos técnicos) ·
 ### Galería — `apps/gallery/` (vistas nuevas)
 `views.py` (GaleriaView) · `urls.py` (nuevo).
 
+### Legal — `apps/legal/` (app nueva)
+`models.py` (DocumentoLegal: 4 tipos fijos — privacidad, términos y
+condiciones, términos del servicio, cookies) · `admin.py` (mismo patrón
+singleton que ConfiguracionEstudio: no se puede agregar ni borrar, solo
+editar el texto) · `views.py`/`urls.py` (`/legal/<tipo>/`) ·
+`migrations/0002_seed_documentos.py` (crea los 4 documentos con contenido
+real, no vacío) · `tests.py` (9 tests: las 4 páginas devuelven 200, 404 en
+un tipo inválido, footer las enlaza, admin bloquea agregar/borrar).
+
 ### Artistas — `apps/artists/`
 `models.py` (Empleado.foto_url → Empleado.foto, ImageField).
 
@@ -206,7 +227,7 @@ chat con `data-enviar-chat`) · `templates/users/login.html` y
 email) · `AGENTS.md` (nuevo) · `docs/Tinta_Vieja_Documentacion.docx`
 (reescrito).
 
-**Total: ~17 commits desde el baseline de la beta inicial. 41 tests
+**Total: ~18 commits desde el baseline de la beta inicial. 49 tests
 automáticos, todos pasando.**
 
 ---
@@ -224,6 +245,8 @@ automáticos, todos pasando.**
 | Excel: hoja "Sesiones" solo informativa | Permitir crear/mover horarios por Excel saltearía la validación de choques de horario — se mantiene ese control solo en el calendario real |
 | Historial de citas se limpia solo (lazy, no cron) | Render free no tiene cron jobs — se dispara la limpieza en cada visita a las vistas de citas, sin infraestructura extra |
 | Todos los números de negocio (topes, duración, horizonte) van en `ConfiguracionEstudio`, nunca hardcodeados | El gerente los ajusta sin depender de un cambio de código |
+| Documentos legales: 4 filas fijas editables desde `/admin`, no texto hardcodeado en el template | El pedido era "algo que se pueda vender" — el gerente necesita poder ajustar el texto legal sin depender de un cambio de código, igual que "Cuidados" |
+| Cookies: banner con Aceptar/Rechazar aunque hoy el sitio solo usa cookies esenciales | El sitio no depende de la respuesta para funcionar (no hay analítica que bloquear todavía), pero deja la base lista para cuando se agregue algo que sí la necesite |
 
 ---
 
@@ -232,7 +255,7 @@ automáticos, todos pasando.**
 (Están completas en `AGENTS.md` — resumen acá de lo más crítico)
 
 1. **Correr `python manage.py test` antes y después de cualquier cambio**
-   (41 tests al momento de escribir esto). Varios bugs reales de producción
+   (49 tests al momento de escribir esto). Varios bugs reales de producción
    los agarró un test que empezó a fallar solo — no es ruido.
 2. `python manage.py check` antes de dar por terminado un cambio de
    modelos/settings.
@@ -282,17 +305,25 @@ automáticos, todos pasando.**
 - Empleados seed sin email cargado.
 - Campo "Políticas" sin sección visual en el sitio.
 
-Ningún bug de código abierto conocido al momento de escribir esto — los 41
-tests pasan y se verificó cada feature nueva en producción, no solo local.
+Ningún bug de código abierto conocido al momento de escribir esto — los 49
+tests pasan y se verificó cada feature nueva localmente en el navegador.
 
 ---
 
 ## 9. Último cambio realizado
 
-Commit `58d465c` — "Saca '(todavia no conectado)' del input decorativo de
-la vista previa del chat". El usuario pensó que ese input (parte de una
-imagen fija de marketing en la home) era el chat real y que estaba roto;
-se sacó el texto confuso. Ya está desplegado y confirmado en producción.
+App nueva `apps/legal/` — Política de privacidad, Términos y condiciones,
+Términos del servicio de tatuaje y Política de cookies, las 4 editables
+desde `/admin` con texto real (no placeholder), enlazadas desde el footer.
+Se agregó también un aviso de cookies real (banner fijo, Aceptar/Rechazar,
+preferencia en `localStorage`). Pedido explícito del usuario: "empezar a
+crear algo que se pueda vender" necesita estos documentos legales.
+Verificado con 9 tests nuevos (las 4 páginas devuelven 200, 404 en un tipo
+inválido, el footer las enlaza, el admin bloquea agregar/borrar) y probado
+a mano en el navegador local (banner aparece, Aceptar lo oculta y lo
+recuerda, las 4 páginas renderizan bien en mobile). Todavía no
+desplegado a producción — pendiente de confirmación del usuario para
+pushear (ver sección 10).
 
 ---
 
@@ -300,18 +331,27 @@ se sacó el texto confuso. Ya está desplegado y confirmado en producción.
 
 En orden sugerido de prioridad:
 
-1. Cargar el **WhatsApp real** del estudio en `/admin` (reemplaza el
+1. **Hacer deploy de los documentos legales y el aviso de cookies** a
+   producción (está probado localmente, falta el push + verificar en
+   vivo — mismo patrón que el resto de la sesión).
+2. **Revisión legal real** de los 4 textos con un profesional antes de
+   cualquier lanzamiento comercial — son un modelo estándar razonable,
+   pero cada país tiene reglas propias (sobre todo para menores de edad y
+   datos de salud, que aplican directo a un estudio de tatuajes).
+3. Cargar el **WhatsApp real** del estudio en `/admin` (reemplaza el
    número de ejemplo que el chatbot está repartiendo ahora mismo).
-2. Decidir si cargarle **email a los 3 empleados de ejemplo** (o
+4. Decidir si cargarle **email a los 3 empleados de ejemplo** (o
    reemplazarlos directamente por los tatuadores reales del estudio).
-3. Reemplazar el resto de los **datos de ejemplo** (nombre, dirección,
+5. Reemplazar el resto de los **datos de ejemplo** (nombre, dirección,
    horarios, descripción, fotos) por los reales del estudio.
-4. Si se quiere una imagen más profesional: crear el **Gmail dedicado al
+6. Si se quiere una imagen más profesional: crear el **Gmail dedicado al
    estudio** para el remitente de los emails de restablecer contraseña
    (los pasos ya se explicaron, no se completó).
-5. Decidir si se quiere una sección visual para "Políticas" (mismo patrón
-   que "Cuidados").
-6. Cuando el estudio esté listo para ser real: dominio propio, evaluar
+7. Decidir si se quiere una sección visual para "Políticas" (mismo patrón
+   que "Cuidados") — o si ese campo se reemplaza directamente por el
+   nuevo "Términos del servicio" de `/legal/`, que ya cubre gran parte de
+   lo mismo (edad mínima, salud, cancelaciones).
+8. Cuando el estudio esté listo para ser real: dominio propio, evaluar
    planes pagos de Render/Neon/Backblaze si el tráfico lo justifica.
 
 ---
@@ -336,7 +376,14 @@ En orden sugerido de prioridad:
 - [x] Documentación Word actualizada
 - [x] `AGENTS.md` creado y actualizado
 - [x] Este documento de estado/continuidad
+- [x] Política de privacidad (`/legal/privacidad/`)
+- [x] Términos y condiciones de uso del sitio (`/legal/terminos-y-condiciones/`)
+- [x] Términos del servicio de tatuaje (`/legal/terminos-del-servicio/`)
+- [x] Política de cookies con aviso/consent banner real (`/legal/cookies/`)
+- [x] Las 4 páginas editables desde `/admin` (no hardcodeadas)
 
+- [ ] Deploy a producción de los documentos legales + aviso de cookies (pendiente de confirmación para pushear)
+- [ ] Revisión legal profesional de los 4 textos antes de un lanzamiento real (pendiente)
 - [ ] Cargar WhatsApp real del estudio (pendiente — dato, no código)
 - [ ] Emails de empleados de ejemplo (pendiente)
 - [ ] Reemplazar datos de ejemplo por reales (pendiente, previo a producción real)

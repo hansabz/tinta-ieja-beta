@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     "apps.contacts",
     "apps.studio",
     "apps.appointments",
+    "apps.legal",
 ]
 
 MIDDLEWARE = [

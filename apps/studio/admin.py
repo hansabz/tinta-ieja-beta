@@ -42,7 +42,7 @@ for _modelo in (Group, Site, EmailAddress, SocialToken, SocialAccount):
 # El orden por defecto es alfabético por app — esto prioriza lo que se usa
 # todos los días (citas, config del estudio, artistas) sobre lo que casi no
 # se toca (usuarios técnicos, integraciones).
-_ORDEN_APPS = ["appointments", "studio", "artists", "gallery", "users", "contacts", "chatbot", "socialaccount"]
+_ORDEN_APPS = ["appointments", "studio", "artists", "gallery", "users", "contacts", "chatbot", "legal", "socialaccount"]
 
 
 def _get_app_list_ordenado(self, request, app_label=None):

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ documento.titulo }} — {{ estudio.nombre }}{% endblock %}
+{% block content %}
+<section class="section" style="background:var(--paper)">
+  <div class="section-head reveal" style="text-align:left;align-items:flex-start;max-width:760px;margin:0 auto">
+    <span class="eyebrow tag-gold">Legal</span>
+    <h2>{{ documento.titulo }}</h2>
+    <p>Última actualización: {{ documento.actualizado|date:"d/m/Y" }}</p>
+  </div>
+  <div class="legal-body reveal">
+    {{ documento.contenido|linebreaks }}
+  </div>
+</section>
+<style>
+  .legal-body{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:16px;font-size:14.5px;color:var(--ink-soft);line-height:1.7}
+  .legal-body p{margin:0}
+</style>
+{% endblock %}

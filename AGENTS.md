@@ -23,7 +23,7 @@ commit) para retomar sin releer todo el historial de git.
 ## Antes de tocar nada
 
 - **Corré la suite completa antes y después de cualquier cambio**:
-  `python manage.py test` (41+ tests al momento de escribir esto). Si algo se
+  `python manage.py test` (49+ tests al momento de escribir esto). Si algo se
   rompe, es una señal real, no ruido — varios bugs de producción reales de
   este proyecto los agarró un test que empezó a fallar solo.
 - **`python manage.py check`** antes de dar por terminado cualquier cambio de
@@ -114,6 +114,12 @@ alguno de estos deje de cumplirse, es un bug, no un "detalle":
   fondos claros (`--cream`/`--paper`). Usar la que no corresponde dejó
   botones prácticamente ilegibles más de una vez — revisar el fondo real
   del contenedor antes de elegir cuál usar.
+- **Los 4 documentos de `apps/legal` (privacidad, términos y condiciones,
+  términos del servicio, cookies) tienen texto real, no un placeholder
+  vacío** — pero es un modelo estándar de redacción, no texto revisado por
+  un abogado. Si el proyecto se acerca a un lanzamiento comercial real,
+  avisale al usuario que conviene una revisión legal antes de confiar en
+  ese texto tal cual.
 - **Un elemento que se ve clickeable (cursor:pointer, hover, `<button>`) no
   significa que esté conectado a algo.** Esta sesión encontró varios
   (`href="#"` sin JS real detrás, un botón "Ver toda la galería" sin
@@ -131,6 +137,9 @@ apps/
   artists/      Empleado (perfil de trabajo del tatuador)
   appointments/ Cita, SesionCita, calendario de reserva, reglas de negocio, Excel
   gallery/      Estilo, Etiqueta, Obra (portafolio público) + vista /galeria/ con filtros
+  legal/        DocumentoLegal — privacidad, términos y condiciones, términos del
+                servicio, cookies. 4 filas fijas (mismo patrón singleton que
+                ConfiguracionEstudio), editables desde /admin, en /legal/<tipo>/
   studio/       ConfiguracionEstudio (singleton, todos los números ajustables desde /admin)
   contacts/     SolicitudContacto
   chatbot/      Conversacion, Mensaje — la IA vive en services/ai/, no acá

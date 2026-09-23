@@ -205,6 +205,24 @@
   .footer-col a:hover{color:var(--gold)}
   .footer-bottom{position:relative;padding:20px 22px 0 22px;border-top:1px solid var(--ink-soft);margin-top:26px;font-size:11.5px;display:flex;flex-direction:column;gap:6px}
 
+  .cookie-banner{
+    position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--ink);color:var(--paper);
+    border-top:3px solid var(--gold);box-shadow:0 -8px 24px rgba(0,0,0,0.35);
+    padding:18px 20px;display:flex;flex-direction:column;gap:14px;
+    transform:translateY(110%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+  }
+  .cookie-banner.visible{transform:translateY(0)}
+  .cookie-banner p{font-size:13px;color:#d8cdb9;line-height:1.55}
+  .cookie-banner p a{color:var(--gold)}
+  .cookie-banner p a:hover{color:var(--paper)}
+  .cookie-actions{display:flex;flex-direction:column;gap:10px}
+  .cookie-actions .btn{min-height:42px;padding:10px 18px;font-size:12.5px}
+  @media (min-width:720px){
+    .cookie-banner{flex-direction:row;align-items:center;justify-content:space-between;padding:18px 32px}
+    .cookie-banner p{max-width:640px}
+    .cookie-actions{flex-direction:row;flex-shrink:0}
+  }
+
   .chatfab{
     position:fixed;right:18px;bottom:18px;width:58px;height:58px;border-radius:50%;padding:0;cursor:pointer;
     background:var(--red);border:3px solid var(--paper);display:flex;align-items:center;justify-content:center;
@@ -377,6 +395,13 @@
       {% if estudio.tiktok_url %}<a href="{{ estudio.tiktok_url }}" target="_blank" rel="noopener">TikTok</a>{% endif %}
     </div>
     {% endif %}
+    <div class="footer-col">
+      <b>Legal</b>
+      <a href="{% url 'legal:documento' tipo='privacidad' %}">Política de privacidad</a>
+      <a href="{% url 'legal:documento' tipo='terminos-y-condiciones' %}">Términos y condiciones</a>
+      <a href="{% url 'legal:documento' tipo='terminos-del-servicio' %}">Términos del servicio</a>
+      <a href="{% url 'legal:documento' tipo='cookies' %}">Política de cookies</a>
+    </div>
   </div>
   <div class="footer-bottom">
     <span>© 2026 {{ estudio.nombre }}. Nombre de ejemplo para esta beta.</span>
@@ -420,12 +445,24 @@
   </form>
 </div>
 
+<!-- Aviso de cookies: solo cookies esenciales (sesión, CSRF) por ahora — ver
+     apps/legal y templates/legal/documento.html (Política de cookies). La
+     preferencia se guarda en localStorage, nunca en el servidor. -->
+<div class="cookie-banner" id="cookieBanner" role="dialog" aria-live="polite">
+  <p>Usamos cookies esenciales para que el sitio funcione (sesión, seguridad). No usamos cookies de analítica ni de publicidad. Más info en nuestra <a href="{% url 'legal:documento' tipo='cookies' %}">política de cookies</a>.</p>
+  <div class="cookie-actions">
+    <button type="button" class="btn btn-outline" id="cookieRechazar" style="border-color:#a89c85;color:#a89c85">Rechazar no esenciales</button>
+    <button type="button" class="btn btn-primary" id="cookieAceptar">Aceptar</button>
+  </div>
+</div>
+
 <!-- JavaScript de la página, en este orden:
      1. Menú hamburguesa (móvil)
      2. Animación de aparición al hacer scroll (.reveal / .reveal-group)
      3. Dibujo de las "mangas tatuadas" de los bordes (scatter de íconos SVG)
      4. Animación de "borrado" del footer al hacer click en sus links
      5. Chat en vivo: abrir/cerrar el panel y enviar mensajes al backend
+     6. Aviso de cookies: mostrar/ocultar y guardar la preferencia
 -->
 <script>
 (function(){
@@ -725,6 +762,25 @@
       enviarMensajeChat(chip.dataset.enviarChat);
     });
   });
+
+  // --- aviso de cookies ---
+  var COOKIE_KEY = 'tv_cookies_consent';
+  var banner = document.getElementById('cookieBanner');
+  if (banner) {
+    var yaRespondio = false;
+    try { yaRespondio = !!localStorage.getItem(COOKIE_KEY); } catch (e) { yaRespondio = false; }
+    if (!yaRespondio) {
+      setTimeout(function(){ banner.classList.add('visible'); }, 400);
+    }
+    function guardarPreferenciaCookies(valor){
+      try { localStorage.setItem(COOKIE_KEY, valor); } catch (e) { /* modo privado: no persiste, no rompe nada */ }
+      banner.classList.remove('visible');
+    }
+    var btnAceptar = document.getElementById('cookieAceptar');
+    var btnRechazar = document.getElementById('cookieRechazar');
+    if (btnAceptar) btnAceptar.addEventListener('click', function(){ guardarPreferenciaCookies('aceptado'); });
+    if (btnRechazar) btnRechazar.addEventListener('click', function(){ guardarPreferenciaCookies('rechazado'); });
+  }
 })();
 </script>
 {% block extra_scripts %}{% endblock %}

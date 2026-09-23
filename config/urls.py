@@ -11,6 +11,7 @@ urlpatterns = [
     path("chat/", include("apps.chatbot.urls")),
     path("citas/", include("apps.appointments.urls")),
     path("galeria/", include("apps.gallery.urls")),
+    path("legal/", include("apps.legal.urls")),
     path("", include("apps.studio.urls")),
 ]
 
